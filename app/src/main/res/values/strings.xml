@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Behavioral PulseID</string>
+
+    <string name="app_head_information">Please select an application running mode. First one must be "Model creation".</string>
+    <string name="enable_usage_settings">Please enable usage accessibility setting to let this application collect your behavioral data and identify you.</string>
+    <string name="info_train_mode">The application is still collecting data to generate your behavioral profile and learn from it to identify you. Collected data is displayed below.</string>
+    <string name="info_test_mode">The application is continuously collecting your behavior to verify you against your already trained profile. Collected data is displayed below.</string>
+
+    <string name="app_collect_values"
+        >Current collected parameters (last 1m):\n\n
+        - Brighness:\n
+        - Sensors:\n
+        - Memmory:\n
+        - NetworkStats:\n
+        - BluetoothStats:\n
+        - LockedTime:\n
+        - Unlocks:\n
+        - App changes:\n
+        - Number of apps:\n
+        - Apps most used last day:
+    </string>
+    <string name="app_debugging"
+        >App debugging:
+    </string>
+
+</resources>
