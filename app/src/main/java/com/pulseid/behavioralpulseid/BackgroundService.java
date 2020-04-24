@@ -26,8 +26,19 @@ public class BackgroundService extends Service implements SensorEventListener {
     public static NotificationCompat.Builder builder = null;
     public static boolean stoppingAlarm = false; //Esta variable se utiliza en BootOrScreenBroadcastReceiver (está aquí para tener persistencia)
     public static String lastAppInForeground = "";
-    public static boolean train; //Boolean variable to select application mode from the UI
     public static boolean test; //Boolean variable to select application mode from the UI
+    public static String uiParams = "Current collected parameters (last 1m):\n" +
+            " - Brighness:\n" +
+            " - Sensors:\n" +
+            " - Memmory:\n" +
+            " - NetworkStats:\n" +
+            " - BluetoothStats:\n" +
+            " - LockedTime:\n" +
+            " - Unlocks:\n" +
+            " - App changes:\n" +
+            " - Number of apps:\n" +
+            " - Apps most used last day:"; //
+    public static String debug = "";
 
     @Override
     public IBinder onBind(Intent intent) {

@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.widget.Button;
 import android.widget.RadioGroup;
@@ -18,11 +19,13 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private RadioGroup radioSexGroup;
+    private RadioGroup radioModeGroup;
     private Button btnGo;
     private Button btnStop;
     private Button btnUsage;
     TextView infoView;
+    public static TextView paramsView;
+    public static TextView debugView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,10 +34,30 @@ public class MainActivity extends AppCompatActivity {
         final Context context = this.getApplicationContext();
 
         infoView = findViewById(R.id.infoView);
-        radioSexGroup = findViewById(R.id.radioGroup);
+        paramsView = findViewById(R.id.collectedValuesView);
+        debugView = findViewById(R.id.debugView);
+
+        radioModeGroup = findViewById(R.id.radioGroup);
         btnGo = findViewById(R.id.btnGo);
         btnStop = findViewById(R.id.btnStop);
         btnUsage = findViewById(R.id.btnUsage);
+
+        //If params or debug information on background service is different than what is on the ui, update
+        if (BackgroundService.uiParams!=paramsView.getText()){
+            paramsView.setText(BackgroundService.uiParams);
+        }
+        debugView.setMovementMethod(new ScrollingMovementMethod());
+        /*if (BackgroundService.debug!=debugView.getText()){
+            debugView.setText(BackgroundService.debug);
+        }*/
+
+        //Check which mode is actually running (or "Model creation" by default)
+        if (BackgroundService.test){
+            radioModeGroup.check(R.id.radioButton2);
+            infoView.setText(R.string.info_test_mode);
+        }else{
+            radioModeGroup.check(R.id.radioButton);
+        }
 
         //Checks for the usage access. If not allowed, launches the settings section to enable it
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
@@ -53,16 +76,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
+
         btnGo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                int selectedId = radioSexGroup.getCheckedRadioButtonId();
+                int selectedId = radioModeGroup.getCheckedRadioButtonId();
                 if (findViewById(selectedId).equals(findViewById(R.id.radioButton))) {
-                    BackgroundService.train=true;
                     BackgroundService.test=false;
                     infoView.setText(R.string.info_train_mode);
                 }else if (findViewById(selectedId).equals(findViewById(R.id.radioButton2))){
-                    BackgroundService.train=false;
                     BackgroundService.test=true;
                     infoView.setText(R.string.info_test_mode);
                 }
@@ -80,6 +103,8 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(context, "Service should die now", Toast.LENGTH_SHORT).show();
             }
         });
+
+
     }
 
     @Override

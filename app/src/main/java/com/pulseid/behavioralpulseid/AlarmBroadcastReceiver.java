@@ -11,63 +11,45 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.os.Build;
+import android.os.Message;
 import android.os.RemoteException;
 import android.provider.Settings;
 
 import androidx.core.app.NotificationManagerCompat;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-import weka.core.DenseInstance;
-import weka.core.Instances;
-
 import static android.content.Context.ACTIVITY_SERVICE;
 
 public class AlarmBroadcastReceiver extends BroadcastReceiver {
-    private static int appsLastInterval = 1;
+    private int appsLastInterval = 1;
 
-    public static void collectData(Context context) {
+    public void retrieveData(Context context) {
+        int brighness = getBrightness(context);
+        float[] sensors = getSensorValues(); //They are light,pressure, temperature and humidity respectively
+        double[] memmory = getMemoryUsage(context); //They are availableMegs and percentAvailable respectively
+        long[] networkStats = getNetworkStats(context); //They are txMB and rxMB respectively
+        long bluetoothStats = getBluetoothStats(context); //The sum of both tx and rx
         long unlocks = BootOrScreenBroadcastReceiver.counter;
         long lockTime = BootOrScreenBroadcastReceiver.screenOffTime;
         BootOrScreenBroadcastReceiver.counter = 0;
         BootOrScreenBroadcastReceiver.screenOffTime = 0;
-        float[] sensors = getSensorValues(); //They are light,pressure, temperature and humidity respectively
-
         String[] pausedToResumed = getTopPkgChange(context); //They are firstPaused and lastResumed respectively
-
-        int brighness = getBrightness(context);
-        double[] memmory = getMemoryUsage(context); //They are availableMegs and percentAvailable respectively
-
-        long[] networkStats = getNetworkStats(context); //They are txMB and rxMB respectively
-        long bluetoothStats = getBluetoothStats(context); //The sum of both tx and rx
-
         String[] mostUsedLastDay = mostUsedAppLastDay(context);
 
         try {
-            //Creamos el objeto mlDataCollector (que usa weka) y le enviamos los datos que queremos registrar
+            //Creamos el objeto mlDataCollector (que usa weka) y le enviamos los datos que queremos registrar o probar contra el perfil
             MlDataCollector mlDataCollector = new MlDataCollector(context);
-            //System.out.println(mlDataCollector.readArff(MlDataCollector.ARFFPATH).toString());//A partir de 425 instances ya no lo imprime bien, mejor mirar el archivo directamente
-
-            if (!new File(MlDataCollector.ARFFPATH).exists()) {
-                Instances data = mlDataCollector.createArffStruct();
-                double[] vals = mlDataCollector.collectData(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                data.add(new DenseInstance(1.0, vals));
-                mlDataCollector.writeArff(data, MlDataCollector.ARFFPATH);
-            } else {
-                mlDataCollector.createArffStruct();
-                mlDataCollector.appendData(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-            }
-
-            if (BackgroundService.train){
-                mlDataCollector.train();
-            }else if (BackgroundService.test){
-                double corr = mlDataCollector.test();
+            if (BackgroundService.test){
+                double corr = mlDataCollector.test(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
                 updateConfidence(context, (int) corr);
+            }else{
+                mlDataCollector.train(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
             }
             System.out.println("*----------------------*" + new SimpleDateFormat("MMM dd,yyyy HH:mm").format(new Date(System.currentTimeMillis())));
+            //System.out.println(mlDataCollector.readArff(MlDataCollector.ARFFPATH).toString());//A partir de 425 instances ya no lo imprime bien, mejor mirar el archivo directamente
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -92,7 +74,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         return new float[]{BackgroundService.light, BackgroundService.pressure, BackgroundService.temp, BackgroundService.hum};
     }
 
-    private static String[] getTopPkgChange(Context context) {
+    private String[] getTopPkgChange(Context context) {
         String resumedPackage = "";
         String pausedPackage = "";
         /*This boolean is used to take only first paused package, so now what this method does
@@ -218,6 +200,6 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         //THIS IS TRIGGERED EVERY MINUTE AS CONFIGURED ON ALARMMANAGER
         //This method has to collect unlock counter, sensor values, pausedToResumedPackage, brightness,
         //memory usage, usagestats and networkstats
-        collectData(context);
+        retrieveData(context);
     }
 }
