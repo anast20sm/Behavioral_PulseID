@@ -184,7 +184,7 @@ class MlDataCollector {
 
         if (attAppNames.indexOf(pausedToResumed[0]) == (-1) || attAppNames.indexOf(pausedToResumed[1]) == (-1) || attAppNames.indexOf(mostUsedLastDay[0]) == (-1) || attAppNames.indexOf(mostUsedLastDay[1]) == (-1)) {
             System.out.println("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEHHHHHHHHHHHHHHHHHHHH\n" +
-                    "ATENSIOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOONNNNNNNNNNNNNNNNNNN\n" +
+                    "ATEEEEEEEEEEEEEEEEEEEEEEENCIOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOONNNNNNNNNNNNNNNNNNN\n" +
                     "Paused to resumed: " + pausedToResumed[0] +"("+attAppNames.indexOf(pausedToResumed[0])+")"+ " - " + pausedToResumed[1] +"("+attAppNames.indexOf(pausedToResumed[1])+")"+ "\n" +
                     "Most used last day: " + mostUsedLastDay[0]+"("+attAppNames.indexOf(mostUsedLastDay[0])+")" + " & " + mostUsedLastDay[1]+"("+attAppNames.indexOf(mostUsedLastDay[1])+")");
         }

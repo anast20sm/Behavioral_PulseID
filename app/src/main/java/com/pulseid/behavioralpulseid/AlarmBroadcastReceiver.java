@@ -61,9 +61,9 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
                 mlDataCollector.appendData(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
             }
 
-            if (BackgroundService.mode){
-                mlDataCollector.train(); //EEEEEEEEEEEEEEMMMMMMMMM ESTO NO HACE NADA REALMENTE. HAY QUE RECONSTRUIR/REORDENAR LOS METODOS
-            }else {
+            if (BackgroundService.train){
+                mlDataCollector.train();
+            }else if (BackgroundService.test){
                 double corr = mlDataCollector.test();
                 updateConfidence(context, (int) corr);
             }

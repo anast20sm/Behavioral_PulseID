@@ -58,10 +58,12 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 int selectedId = radioSexGroup.getCheckedRadioButtonId();
                 if (findViewById(selectedId).equals(findViewById(R.id.radioButton))) {
-                    BackgroundService.mode=true;
+                    BackgroundService.train=true;
+                    BackgroundService.test=false;
                     infoView.setText(R.string.info_train_mode);
                 }else if (findViewById(selectedId).equals(findViewById(R.id.radioButton2))){
-                    BackgroundService.mode=false;
+                    BackgroundService.train=false;
+                    BackgroundService.test=true;
                     infoView.setText(R.string.info_test_mode);
                 }
                 //When the app is initialized, the service is started (I need to decide how to manage launching the service)

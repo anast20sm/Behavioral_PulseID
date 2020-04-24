@@ -26,7 +26,8 @@ public class BackgroundService extends Service implements SensorEventListener {
     public static NotificationCompat.Builder builder = null;
     public static boolean stoppingAlarm = false; //Esta variable se utiliza en BootOrScreenBroadcastReceiver (está aquí para tener persistencia)
     public static String lastAppInForeground = "";
-    public static boolean mode; //Boolean variable to select application mode from the UI
+    public static boolean train; //Boolean variable to select application mode from the UI
+    public static boolean test; //Boolean variable to select application mode from the UI
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -42,7 +43,7 @@ public class BackgroundService extends Service implements SensorEventListener {
         builder = new NotificationCompat.Builder(this, "NOTIFICATION_CHANNEL")
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("Behavioral PulseID")
-                .setContentText("Se calculará el nivel de confianza")
+                .setContentText("Se está entrenando el algoritmo")
                 .setTimeoutAfter(-1)
                 .setShowWhen(false)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
