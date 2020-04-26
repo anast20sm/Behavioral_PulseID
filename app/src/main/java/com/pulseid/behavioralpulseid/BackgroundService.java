@@ -2,6 +2,7 @@ package com.pulseid.behavioralpulseid;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -39,6 +40,7 @@ public class BackgroundService extends Service implements SensorEventListener {
             " - Number of apps:\n" +
             " - Apps most used last day:"; //
     public static String debug = "";
+    public static boolean stopService = false;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -51,6 +53,9 @@ public class BackgroundService extends Service implements SensorEventListener {
         registerSensorsListener(this);
         createNotificationChannel(); //Necessary for Android>8
 
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
+
         builder = new NotificationCompat.Builder(this, "NOTIFICATION_CHANNEL")
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("Behavioral PulseID")
@@ -58,6 +63,7 @@ public class BackgroundService extends Service implements SensorEventListener {
                 .setTimeoutAfter(-1)
                 .setShowWhen(false)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(contentIntent)
                 .setTimeoutAfter(-1);
         startForeground(1001, builder.build());
     }
@@ -83,10 +89,12 @@ public class BackgroundService extends Service implements SensorEventListener {
         }
         //From Android 8, Android does not allow to have a persistent service,
         // so we need to restart it each time it is closed by the OS
-        Intent broadcastIntent = new Intent();
-        broadcastIntent.setAction("startService");
-        broadcastIntent.setClass(this, BootOrScreenBroadcastReceiver.class);
-        this.sendBroadcast(broadcastIntent);
+        if (!stopService) {
+            Intent broadcastIntent = new Intent();
+            broadcastIntent.setAction("startService");
+            broadcastIntent.setClass(this, BootOrScreenBroadcastReceiver.class);
+            this.sendBroadcast(broadcastIntent);
+        }
     }
 
     private void createNotificationChannel() {

@@ -59,7 +59,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         if (conf < 50) {
             BackgroundService.builder.setColor(0xcc0000);//Rojo
         } else if (conf < 70) {
-            BackgroundService.builder.setColor(0xff8000);//Naranja
+            BackgroundService.builder.setColor(0xffcc00);//Naranja
         } else if (conf < 90) {
             BackgroundService.builder.setColor(0xfff00);//Amarillo
         } else {

@@ -30,7 +30,7 @@ class MlDataCollector {
     final Context context;
     public static String ARFFPATH;
     private static IsolationForest forest;
-    private static String TESTPATH;
+    public static String TESTPATH;
     private static Instances data;
     private static List attAppNames;
     private static List attNomHour;
@@ -76,25 +76,8 @@ class MlDataCollector {
         atts.add(new Attribute("bluetooth statistics"));
         atts.add(new Attribute("unlock time"));
         atts.add(new Attribute("unlocks"));
-        // - nominal
-        attNomHour = new ArrayList(6);
-        for (i = 0; i < 6; i++)
-            attNomHour.add("temporal zone " + (i + 1));
-        //atts.add(new Attribute("horario", attNomHour));
-        atts.add(new Attribute("horario")); //-alternativo
-        // - date
-        //atts.add(new Attribute("date", "yyyy-MM-dd"));
-        atts.add(new Attribute("date"));//-alternativo
-        // - day of the week
-        attNomDay = new ArrayList(7);
-        attNomDay.add("Monday");
-        attNomDay.add("Tuesday");
-        attNomDay.add("Wednesday");
-        attNomDay.add("Thursday");
-        attNomDay.add("Friday");
-        attNomDay.add("Saturday");
-        attNomDay.add("Sunday");
-        //atts.add(new Attribute("dia", attNomDay));
+        atts.add(new Attribute("horario"));
+        atts.add(new Attribute("date"));
         atts.add(new Attribute("dia"));
 
         if (packages.equals(null))
@@ -103,7 +86,6 @@ class MlDataCollector {
         for (String aPackage : packages) {
             attAppNames.add(aPackage);
         }
-        //attAppNames.add("");
         atts.add(new Attribute("fromApp"));
         atts.add(new Attribute("toApp"));
         atts.add(new Attribute("lastMinuteApps"));
@@ -123,10 +105,10 @@ class MlDataCollector {
     public double[] collectData(float brighness, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
                                 long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute,
                                 String[] mostUsedLastDay) {
-        double[] vals;
+
         // 3. fill with data
         // first instance
-        vals = new double[data.numAttributes()];
+        double[] vals = new double[20];
         // - numeric
         vals[0] = brighness;
         vals[1] = sensors[0];
@@ -142,6 +124,10 @@ class MlDataCollector {
         // - nominal
         Calendar rightNow = Calendar.getInstance();
         int currentHour = rightNow.get(Calendar.HOUR_OF_DAY);
+
+        attNomHour = new ArrayList(6);
+        for (int i = 0; i < 6; i++)
+            attNomHour.add("temporal zone " + (i + 1));
         if (currentHour >= 0 && currentHour < 4)
             vals[11] = attNomHour.indexOf("temporal zone 1");
         else if (currentHour >= 4 && currentHour < 8)
@@ -159,6 +145,14 @@ class MlDataCollector {
             vals[12] = rightNow.get(Calendar.DAY_OF_MONTH);
         }
         // - day of week
+        attNomDay = new ArrayList(7);
+        attNomDay.add("Monday");
+        attNomDay.add("Tuesday");
+        attNomDay.add("Wednesday");
+        attNomDay.add("Thursday");
+        attNomDay.add("Friday");
+        attNomDay.add("Saturday");
+        attNomDay.add("Sunday");
         vals[13] = attNomDay.indexOf(new SimpleDateFormat("EEEE", Locale.ENGLISH).format(rightNow.getTime().getTime()));
 
         //Below lines are created to ensure that attAppNames array is not null
@@ -258,10 +252,10 @@ class MlDataCollector {
 
         // Evaluate classifier
         Instances test;
-        double[] vals = collectData(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
+        double[] testVals = collectData(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
         if (!new File(TESTPATH).exists()) { //If test instances do not exist, create the file and write last instance
             test = createArffStruct();
-            test.add(new DenseInstance(1.0, vals));
+            test.add(new DenseInstance(1.0, testVals));
             test.setClassIndex(test.numAttributes() - 1);
             writeArff(test, TESTPATH);
         } else {    //If test file exists, reads it, removes older and adds new one
@@ -272,7 +266,7 @@ class MlDataCollector {
                     test.set(i, test.instance(i + 1));
                 }
             }
-            test.add(new DenseInstance(1.0, vals));
+            test.add(new DenseInstance(1.0, testVals));
             test.setClassIndex(test.numAttributes() - 1);
             writeArff(test, TESTPATH);
         }

@@ -37,22 +37,26 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
             screenOffTime += (endTimer - startTimer);
             counter++;
         } else if (intent.getAction().equals("startService")) {
+            BackgroundService.stopService=false;
             startAlarm(context);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(backgroundService);
             } else {
                 context.startService(backgroundService);
             }
+        } else if (intent.getAction().equals("stopService")) {
+            BackgroundService.stopService=true;
+            context.stopService(backgroundService);
         }
     }
 
     private static void stopAlarm() {
+        System.out.println("ALARM WAITING TO STOP");
         BackgroundService.stoppingAlarm = true; //Indicate that alarm will be cancelled (on BackgroundService to ensure persistance between calls to this class)
         AsyncTask asyncTask = new AsyncTask() {
             @Override
             protected Object doInBackground(Object[] objects) {
                 try {
-                    System.out.println("ALARM WAITING TO STOP");
                     Thread.sleep(60000); //Start asynchron counter to 1 minute (def interval)
                     if (BackgroundService.stoppingAlarm) { //If after this time boolean changed, it means device has been unlocked so there is no need to cancel AlarmManager
                         if (pendingIntent != null) {
@@ -73,7 +77,7 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
     }
 
     private void startAlarm(Context context) {
-        if (BackgroundService.stoppingAlarm) { //If device was locked on last minute, cancel the cancelaion of the alarm
+        if (BackgroundService.stoppingAlarm) { //If device was locked on last minute, cancel the removal of the alarm
             BackgroundService.stoppingAlarm = false;
             System.out.println("ALARM STOP CANCELLED");
         } else if (alarmManager == null) {
