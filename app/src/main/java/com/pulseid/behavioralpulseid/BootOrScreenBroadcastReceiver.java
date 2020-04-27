@@ -19,6 +19,7 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         Intent backgroundService = new Intent(context, BackgroundService.class);
         if (intent.getAction().equalsIgnoreCase(Intent.ACTION_BOOT_COMPLETED)) {
+            //NEED TO MANAGE SHAREDPREFERENCES TO KNOW IF WE ARE ON TEST, TRAIN OR NOTHING
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 //From Android 8, Android does not allow to have a persistent background services,
                 // so we need to use foreground service (that uses a persistent notification)
