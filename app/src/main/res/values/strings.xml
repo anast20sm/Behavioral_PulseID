@@ -19,8 +19,6 @@
         - Number of apps:\n
         - Apps most used last day:
     </string>
-    <string name="app_debugging"
-        >App debugging:
-    </string>
+    <string name="app_debugging"> </string>
 
 </resources>

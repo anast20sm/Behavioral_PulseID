@@ -7,6 +7,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -27,20 +28,9 @@ public class BackgroundService extends Service implements SensorEventListener {
     public static NotificationCompat.Builder builder = null;
     public static boolean stoppingAlarm = false; //Esta variable se utiliza en BootOrScreenBroadcastReceiver (está aquí para tener persistencia)
     public static String lastAppInForeground = "";
-    public static boolean test; //Boolean variable to select application mode from the UI
-    public static String uiParams = "Current collected parameters (last 1m):\n" +
-            " - Brighness:\n" +
-            " - Sensors:\n" +
-            " - Memmory:\n" +
-            " - NetworkStats:\n" +
-            " - BluetoothStats:\n" +
-            " - LockedTime:\n" +
-            " - Unlocks:\n" +
-            " - App changes:\n" +
-            " - Number of apps:\n" +
-            " - Apps most used last day:"; //
-    public static String debug = "";
-    public static boolean stopService = false;
+
+    SharedPreferences pref;
+
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -50,6 +40,8 @@ public class BackgroundService extends Service implements SensorEventListener {
     @Override
     public void onCreate() {
         super.onCreate();
+        pref = getApplicationContext().getSharedPreferences("pulseidpreferences", MODE_PRIVATE); // 0 - for private mode
+
         registerSensorsListener(this);
         createNotificationChannel(); //Necessary for Android>8
 
@@ -59,7 +51,7 @@ public class BackgroundService extends Service implements SensorEventListener {
         builder = new NotificationCompat.Builder(this, "NOTIFICATION_CHANNEL")
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("Behavioral PulseID")
-                .setContentText("Se está entrenando el algoritmo")
+                .setContentText("Iniciando servicio...")
                 .setTimeoutAfter(-1)
                 .setShowWhen(false)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -70,7 +62,7 @@ public class BackgroundService extends Service implements SensorEventListener {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Toast.makeText(this, "SERVICE STARTED", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "SERVICE STARTED", Toast.LENGTH_SHORT).show();
         mBootReceiver = new BootOrScreenBroadcastReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_OFF);
@@ -89,7 +81,7 @@ public class BackgroundService extends Service implements SensorEventListener {
         }
         //From Android 8, Android does not allow to have a persistent service,
         // so we need to restart it each time it is closed by the OS
-        if (!stopService) {
+        if (!pref.getBoolean("stop_service",false)) {
             Intent broadcastIntent = new Intent();
             broadcastIntent.setAction("startService");
             broadcastIntent.setClass(this, BootOrScreenBroadcastReceiver.class);

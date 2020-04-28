@@ -5,8 +5,16 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Handler;
+import android.widget.Toast;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+import static android.content.Context.MODE_PRIVATE;
 
 public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
     private long startTimer;
@@ -14,12 +22,17 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
     public static long screenOffTime = 0;
     private static AlarmManager alarmManager;
     private static PendingIntent pendingIntent;
+    SharedPreferences pref;
+    SharedPreferences.Editor editor;
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        pref = context.getSharedPreferences("pulseidpreferences", MODE_PRIVATE);
+        editor = pref.edit();
+
+
         Intent backgroundService = new Intent(context, BackgroundService.class);
         if (intent.getAction().equalsIgnoreCase(Intent.ACTION_BOOT_COMPLETED)) {
-            //NEED TO MANAGE SHAREDPREFERENCES TO KNOW IF WE ARE ON TEST, TRAIN OR NOTHING
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 //From Android 8, Android does not allow to have a persistent background services,
                 // so we need to use foreground service (that uses a persistent notification)
@@ -38,7 +51,8 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
             screenOffTime += (endTimer - startTimer);
             counter++;
         } else if (intent.getAction().equals("startService")) {
-            BackgroundService.stopService=false;
+            editor.putBoolean("stop_service", false);
+            editor.commit();
             startAlarm(context);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(backgroundService);
@@ -46,13 +60,16 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
                 context.startService(backgroundService);
             }
         } else if (intent.getAction().equals("stopService")) {
-            BackgroundService.stopService=true;
+            MainActivity.debugView.setText(pref.getString("debug_text",null));
+            cancelAlarm();
             context.stopService(backgroundService);
+            editor.putBoolean("stop_service", true);
+            editor.commit();
         }
+
     }
 
     private static void stopAlarm() {
-        System.out.println("ALARM WAITING TO STOP");
         BackgroundService.stoppingAlarm = true; //Indicate that alarm will be cancelled (on BackgroundService to ensure persistance between calls to this class)
         AsyncTask asyncTask = new AsyncTask() {
             @Override
@@ -65,7 +82,6 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
                             pendingIntent.cancel();
                             alarmManager = null;
                             BackgroundService.stoppingAlarm = false;
-                            System.out.println("ALARM STOPPED");
                         }
                     }
                 } catch (InterruptedException e) {
@@ -76,17 +92,24 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
         };
         asyncTask.execute();
     }
+    private void cancelAlarm() {
+        if (pendingIntent != null && alarmManager != null) {
+            alarmManager.cancel(pendingIntent);
+            pendingIntent.cancel();
+            alarmManager = null;
+            System.out.println("Alarm forced to stop");
+        }
+    }
 
     private void startAlarm(Context context) {
         if (BackgroundService.stoppingAlarm) { //If device was locked on last minute, cancel the removal of the alarm
             BackgroundService.stoppingAlarm = false;
-            System.out.println("ALARM STOP CANCELLED");
         } else if (alarmManager == null) {
-            System.out.println("ALARM STARTED");
             alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
             Intent alarmIntent = new Intent(context, AlarmBroadcastReceiver.class);
             pendingIntent = PendingIntent.getBroadcast(context, 0, alarmIntent, 0);
             alarmManager.setInexactRepeating(AlarmManager.RTC, System.currentTimeMillis(), 1000 /*ms*/ * 60 /*s*/, pendingIntent);
         }
+
     }
 }

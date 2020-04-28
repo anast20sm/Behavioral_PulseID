@@ -3,6 +3,7 @@ package com.pulseid.behavioralpulseid;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 
 import java.io.BufferedReader;
@@ -35,6 +36,8 @@ class MlDataCollector {
     private static List attAppNames;
     private static List attNomHour;
     private static List attNomDay;
+    SharedPreferences pref;
+    SharedPreferences.Editor editor;
 
 
     public MlDataCollector(Context context) {
@@ -42,6 +45,8 @@ class MlDataCollector {
         ARFFPATH = context.getFilesDir().getPath().concat("/dataset.arff");
         TESTPATH = context.getFilesDir().getPath().concat("/testset.arff");
         packages = constructPackages();
+        pref = context.getSharedPreferences("pulseidpreferences", 0); // 0 - for private mode
+        editor = pref.edit();
     }
 
     private String[] constructPackages() {
@@ -156,6 +161,13 @@ class MlDataCollector {
         vals[13] = attNomDay.indexOf(new SimpleDateFormat("EEEE", Locale.ENGLISH).format(rightNow.getTime().getTime()));
 
         //Below lines are created to ensure that attAppNames array is not null
+        if (attAppNames==null){
+            packages = constructPackages();
+            attAppNames = new ArrayList();
+            for (String aPackage : packages) {
+                attAppNames.add(aPackage);
+            }
+        }
         if (attAppNames.indexOf(pausedToResumed[0]) == (-1) || attAppNames.indexOf(pausedToResumed[1]) == (-1) || attAppNames.indexOf(mostUsedLastDay[0]) == (-1) || attAppNames.indexOf(mostUsedLastDay[1]) == (-1)) {
             packages = constructPackages();
             attAppNames = new ArrayList();
@@ -177,8 +189,7 @@ class MlDataCollector {
         vals[18] = attAppNames.indexOf(mostUsedLastDay[1]);
         vals[19] = 1;// is supposed to be always 1 (this will be the predicted value)
         // add
-
-        BackgroundService.uiParams="Current collected parameters (last 1m):\n\n" +
+        editor.putString("params_text","Current collected parameters (last 1m):\n\n" +
                 " - Brighness: "+brighness+"\n" +
                 " - Sensors: "+sensors[0]+", "+sensors[1]+", "+sensors[2]+", "+sensors[3]+"\n" +
                 " - Memory: "+memmory[0]+" kB"+"("+(int)memmory[1]+"%)\n" +
@@ -189,8 +200,9 @@ class MlDataCollector {
                 " - First app: " + pausedToResumed[0] +"\n"+
                 " - Last app: " + pausedToResumed[1] +"\n" +
                 " - Number of apps: "+appsLastMinute+"\n" +
-                " - Most used last day: "+mostUsedLastDay[0]+" & "+mostUsedLastDay[1];
-        MainActivity.paramsView.setText(BackgroundService.uiParams);
+                " - Most used last day: "+mostUsedLastDay[0]+" & "+mostUsedLastDay[1]);
+        editor.commit();
+        //MainActivity.paramsView.setText(pref.getString("params_text",null));
 
         return vals;
     }
@@ -236,8 +248,9 @@ class MlDataCollector {
             createArffStruct();
             appendData(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
         }
-        BackgroundService.debug=new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" New train instance added."+"\n"+BackgroundService.debug;
-        MainActivity.debugView.setText(BackgroundService.debug);
+        editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" New train instance added."+"\n"+pref.getString("debug_text",null));
+        editor.commit();
+        //MainActivity.debugView.setText(pref.getString("debug_text",null));
     }
 
     public double test(float brighness, float[] sensors, double[] memmory, long[] networkStats,
@@ -278,8 +291,9 @@ class MlDataCollector {
                 eval.toSummaryString("\nResults\n======\n", false)
                         + "\n" + eval.toMatrixString()
         );*/
-        BackgroundService.debug=new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" Evaluation successful."+"\n"+BackgroundService.debug;
-        MainActivity.debugView.setText(BackgroundService.debug);
+        editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" Evaluation successful."+"\n"+pref.getString("debug_text",null));
+        editor.commit();
+        //MainActivity.debugView.setText(pref.getString("debug_text",null));
 
         return eval.pctCorrect();
     }

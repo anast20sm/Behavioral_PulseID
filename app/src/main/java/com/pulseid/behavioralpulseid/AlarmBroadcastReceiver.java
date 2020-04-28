@@ -1,6 +1,7 @@
 package com.pulseid.behavioralpulseid;
 
 import android.app.ActivityManager;
+import android.app.PendingIntent;
 import android.app.usage.NetworkStats;
 import android.app.usage.NetworkStatsManager;
 import android.app.usage.UsageEvents;
@@ -9,12 +10,15 @@ import android.app.usage.UsageStatsManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.os.Build;
 import android.os.Message;
 import android.os.RemoteException;
 import android.provider.Settings;
+import android.widget.Toast;
 
+import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import java.text.SimpleDateFormat;
@@ -22,9 +26,12 @@ import java.util.Date;
 import java.util.List;
 
 import static android.content.Context.ACTIVITY_SERVICE;
+import static android.content.Context.MODE_PRIVATE;
 
 public class AlarmBroadcastReceiver extends BroadcastReceiver {
     private int appsLastInterval = 1;
+    SharedPreferences pref;
+    SharedPreferences.Editor editor;
 
     public void retrieveData(Context context) {
         int brighness = getBrightness(context);
@@ -39,14 +46,20 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         String[] pausedToResumed = getTopPkgChange(context); //They are firstPaused and lastResumed respectively
         String[] mostUsedLastDay = mostUsedAppLastDay(context);
 
+
         try {
             //Creamos el objeto mlDataCollector (que usa weka) y le enviamos los datos que queremos registrar o probar contra el perfil
             MlDataCollector mlDataCollector = new MlDataCollector(context);
-            if (BackgroundService.test){
+            if (!pref.getBoolean("train",false) && pref.getBoolean("test",false)){
                 double corr = mlDataCollector.test(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
                 updateConfidence(context, (int) corr);
-            }else{
+                Toast.makeText(context, "Test", Toast.LENGTH_SHORT).show();
+            }else if (pref.getBoolean("train",false) && !pref.getBoolean("test",false)){
                 mlDataCollector.train(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                BackgroundService.builder.setContentText("Entrenando el modelo...");
+                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+                notificationManager.notify(1001, BackgroundService.builder.build());
+                Toast.makeText(context, "Train", Toast.LENGTH_SHORT).show();
             }
             System.out.println("*----------------------*" + new SimpleDateFormat("MMM dd,yyyy HH:mm").format(new Date(System.currentTimeMillis())));
             //System.out.println(mlDataCollector.readArff(MlDataCollector.ARFFPATH).toString());//A partir de 425 instances ya no lo imprime bien, mejor mirar el archivo directamente
@@ -55,7 +68,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
-    public static void updateConfidence(Context context, int conf) {
+    public void updateConfidence(Context context, int conf) {
         if (conf < 50) {
             BackgroundService.builder.setColor(0xcc0000);//Rojo
         } else if (conf < 70) {
@@ -200,6 +213,8 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         //THIS IS TRIGGERED EVERY MINUTE AS CONFIGURED ON ALARMMANAGER
         //This method has to collect unlock counter, sensor values, pausedToResumedPackage, brightness,
         //memory usage, usagestats and networkstats
+        pref = context.getSharedPreferences("pulseidpreferences", MODE_PRIVATE); // 0 - for private mode
+        editor = pref.edit();
         retrieveData(context);
     }
 }

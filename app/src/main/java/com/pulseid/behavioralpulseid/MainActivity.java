@@ -11,10 +11,14 @@ import android.app.usage.UsageStatsManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.Settings;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
@@ -31,7 +35,10 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.channels.FileChannel;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -45,11 +52,25 @@ public class MainActivity extends AppCompatActivity {
     public static TextView paramsView;
     public static TextView debugView;
 
+    SharedPreferences pref;
+    SharedPreferences.Editor editor;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         final Context context = this.getApplicationContext();
+
+        pref = getSharedPreferences("pulseidpreferences", MODE_PRIVATE); // 0 - for private mode
+        editor = pref.edit();
+
+        if (pref.getString("params_text",null)==null)
+            editor.putString("params_text",getString(R.string.app_collect_values));
+        if (pref.getString("debug_text",null)==null)
+            editor.putString("debug_text",getString(R.string.app_debugging));
+        if (pref.getString("head_text",null)==null)
+            editor.putString("head_text",getString(R.string.app_head_information));
+        editor.commit();
 
         infoView = findViewById(R.id.infoView);
         paramsView = findViewById(R.id.collectedValuesView);
@@ -61,25 +82,29 @@ public class MainActivity extends AppCompatActivity {
         btnUsage = findViewById(R.id.btnUsage);
         btnDown = findViewById(R.id.downloadButton);
 
+
         //If params or debug information on background service is different than what is on the ui, update
-        if (BackgroundService.uiParams!=paramsView.getText()){
-            paramsView.setText(BackgroundService.uiParams);
+        if (pref.getString("params_text",null)!=paramsView.getText()){
+            paramsView.setText(pref.getString("params_text", null));
         }
+
         debugView.setMovementMethod(new ScrollingMovementMethod());
-        if (BackgroundService.debug!=debugView.getText()){
-            debugView.setText(BackgroundService.debug);
+        if (pref.getString("debug_text",null)!=debugView.getText()){
+            debugView.setText(pref.getString("debug_text",null));
         }
 
         //Check which mode is actually running (or "Model creation" by default)
-        if (BackgroundService.test){
+        if (pref.getBoolean("test", false) && !pref.getBoolean("train", false)){
             radioModeGroup.check(R.id.radioButton2);
-            infoView.setText(R.string.info_test_mode);
-        }else if (!BackgroundService.test){
+            editor.putString("head_text", getString(R.string.info_train_mode));
+        }else if (!pref.getBoolean("test", false) && pref.getBoolean("train", false)){
             radioModeGroup.check(R.id.radioButton);
-            infoView.setText(R.string.info_train_mode);
+            editor.putString("head_text", getString(R.string.info_test_mode));
         }else{
-            infoView.setText(R.string.app_head_information);
+            editor.putString("head_text", getString(R.string.app_head_information));
         }
+        editor.commit();
+        infoView.setText(pref.getString("head_text", null));
 
         //Checks for the usage access. If not allowed, launches the settings section to enable it
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
@@ -98,19 +123,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-
         btnGo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 int selectedId = radioModeGroup.getCheckedRadioButtonId();
                 if (findViewById(selectedId).equals(findViewById(R.id.radioButton))) {
-                    BackgroundService.test=false;
+                    editor.putBoolean("train",true);
+                    editor.putBoolean("test",false);
                     infoView.setText(R.string.info_train_mode);
                 }else if (findViewById(selectedId).equals(findViewById(R.id.radioButton2))){
-                    BackgroundService.test=true;
+                    editor.putBoolean("train",false);
+                    editor.putBoolean("test",true);
                     infoView.setText(R.string.info_test_mode);
                 }
+                editor.commit();
                 stopService(context);
                 startService(context);
             }
@@ -119,7 +145,10 @@ public class MainActivity extends AppCompatActivity {
         btnStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(context, "Service stopped", Toast.LENGTH_SHORT).show();
+                editor.putString("debug_text", new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" Service stopped"+"\n"+pref.getString("debug_text",null));
+                editor.putBoolean("train",false);
+                editor.putBoolean("test",false);
+                editor.commit();
                 stopService(context);
             }
         });
@@ -159,13 +188,16 @@ public class MainActivity extends AppCompatActivity {
                 dialog.show();
             }
         });
+
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         btnUsage.setVisibility(View.GONE);
-        infoView.setText(R.string.app_head_information);
+        editor.putString("head_text", getString(R.string.app_head_information));
+        editor.commit();
+        infoView.setText(pref.getString("head_text",null));
     }
 
     private void startService(Context context) {
