@@ -71,6 +71,7 @@ class MlDataCollector {
         atts = new ArrayList<>();
         // - numeric
         atts.add(new Attribute("brightness"));
+        atts.add(new Attribute("orientation"));
         atts.add(new Attribute("light"));
         atts.add(new Attribute("pressure"));
         atts.add(new Attribute("ambient temperature"));
@@ -107,25 +108,26 @@ class MlDataCollector {
         return data;
     }
 
-    public double[] collectData(float brighness, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
+    public double[] collectData(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
                                 long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute,
                                 String[] mostUsedLastDay) {
 
         // 3. fill with data
         // first instance
-        double[] vals = new double[20];
+        double[] vals = new double[21];
         // - numeric
         vals[0] = brighness;
-        vals[1] = sensors[0];
-        vals[2] = sensors[1];
-        vals[3] = sensors[2];
-        vals[4] = sensors[3];
-        vals[5] = memmory[0];
-        vals[6] = networkStats[0];
-        vals[7] = networkStats[1];
-        vals[8] = bluetoothStats;
-        vals[9] = lockTime;
-        vals[10] = unlocks;
+        vals[1] = orientation;
+        vals[2] = sensors[0];
+        vals[3] = sensors[1];
+        vals[4] = sensors[2];
+        vals[5] = sensors[3];
+        vals[6] = memmory[0];
+        vals[7] = networkStats[0];
+        vals[8] = networkStats[1];
+        vals[9] = bluetoothStats;
+        vals[10] = lockTime;
+        vals[11] = unlocks;
         // - nominal
         Calendar rightNow = Calendar.getInstance();
         int currentHour = rightNow.get(Calendar.HOUR_OF_DAY);
@@ -134,20 +136,20 @@ class MlDataCollector {
         for (int i = 0; i < 6; i++)
             attNomHour.add("temporal zone " + (i + 1));
         if (currentHour >= 0 && currentHour < 4)
-            vals[11] = attNomHour.indexOf("temporal zone 1");
+            vals[12] = attNomHour.indexOf("temporal zone 1");
         else if (currentHour >= 4 && currentHour < 8)
-            vals[11] = attNomHour.indexOf("temporal zone 2");
+            vals[12] = attNomHour.indexOf("temporal zone 2");
         else if (currentHour >= 8 && currentHour < 12)
-            vals[11] = attNomHour.indexOf("temporal zone 3");
+            vals[12] = attNomHour.indexOf("temporal zone 3");
         else if (currentHour >= 12 && currentHour < 16)
-            vals[11] = attNomHour.indexOf("temporal zone 4");
+            vals[12] = attNomHour.indexOf("temporal zone 4");
         else if (currentHour >= 16 && currentHour < 20)
-            vals[11] = attNomHour.indexOf("temporal zone 5");
+            vals[12] = attNomHour.indexOf("temporal zone 5");
         else if (currentHour >= 20 && currentHour < 24)
-            vals[11] = attNomHour.indexOf("temporal zone 6");
+            vals[12] = attNomHour.indexOf("temporal zone 6");
         // - date (only the day of month)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vals[12] = rightNow.get(Calendar.DAY_OF_MONTH);
+            vals[13] = rightNow.get(Calendar.DAY_OF_MONTH);
         }
         // - day of week
         attNomDay = new ArrayList(7);
@@ -158,7 +160,7 @@ class MlDataCollector {
         attNomDay.add("Friday");
         attNomDay.add("Saturday");
         attNomDay.add("Sunday");
-        vals[13] = attNomDay.indexOf(new SimpleDateFormat("EEEE", Locale.ENGLISH).format(rightNow.getTime().getTime()));
+        vals[14] = attNomDay.indexOf(new SimpleDateFormat("EEEE", Locale.ENGLISH).format(rightNow.getTime().getTime()));
 
         //Below lines are created to ensure that attAppNames array is not null
         if (attAppNames==null){
@@ -182,12 +184,12 @@ class MlDataCollector {
         if (pausedToResumed[1] == "") {
             pausedToResumed[1] = BackgroundService.lastAppInForeground;
         }
-        vals[14] = attAppNames.indexOf(pausedToResumed[0]);
-        vals[15] = attAppNames.indexOf(pausedToResumed[1]);
-        vals[16] = appsLastMinute;
-        vals[17] = attAppNames.indexOf(mostUsedLastDay[0]);
-        vals[18] = attAppNames.indexOf(mostUsedLastDay[1]);
-        vals[19] = 1;// is supposed to be always 1 (this will be the predicted value)
+        vals[15] = attAppNames.indexOf(pausedToResumed[0]);
+        vals[16] = attAppNames.indexOf(pausedToResumed[1]);
+        vals[17] = appsLastMinute;
+        vals[18] = attAppNames.indexOf(mostUsedLastDay[0]);
+        vals[19] = attAppNames.indexOf(mostUsedLastDay[1]);
+        vals[20] = 1;// is supposed to be always 1 (this will be the predicted value)
         // add
         editor.putString("params_text","Current collected parameters (last 1m):\n\n" +
                 " - Brighness: "+brighness+"\n" +
@@ -217,11 +219,11 @@ class MlDataCollector {
         writer.close();
     }
 
-    public void appendData(float brighness, float[] sensors, double[] memmory, long[] networkStats,
+    public void appendData(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats,
                            long bluetoothStats, long lockTime, long unlocks,
                            String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws IOException {
         Instances arff = readArff(ARFFPATH);
-        double[] vals = collectData(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute,
+        double[] vals = collectData(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute,
                 mostUsedLastDay);
         arff.add(new DenseInstance(1.0, vals));
         writeArff(arff, ARFFPATH);
@@ -236,24 +238,24 @@ class MlDataCollector {
         return instances;
     }
 
-    public void train(float brighness, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
+    public void train(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
                       long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
 
         if (!new File(MlDataCollector.ARFFPATH).exists()) {
             Instances data = createArffStruct();
-            double[] vals = collectData(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
+            double[] vals = collectData(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
             data.add(new DenseInstance(1.0, vals));
             writeArff(data, MlDataCollector.ARFFPATH);
         } else {
             createArffStruct();
-            appendData(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
+            appendData(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
         }
         editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" New train instance added."+"\n"+pref.getString("debug_text",null));
         editor.commit();
         //MainActivity.debugView.setText(pref.getString("debug_text",null));
     }
 
-    public double test(float brighness, float[] sensors, double[] memmory, long[] networkStats,
+    public double test(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats,
                        long bluetoothStats, long lockTime, long unlocks,
                        String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
         // Loading arff dataset
@@ -265,7 +267,7 @@ class MlDataCollector {
 
         // Evaluate classifier
         Instances test;
-        double[] testVals = collectData(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
+        double[] testVals = collectData(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
         if (!new File(TESTPATH).exists()) { //If test instances do not exist, create the file and write last instance
             test = createArffStruct();
             test.add(new DenseInstance(1.0, testVals));

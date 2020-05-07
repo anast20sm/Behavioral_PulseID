@@ -11,6 +11,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.os.Build;
 import android.os.Message;
@@ -35,6 +36,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
 
     public void retrieveData(Context context) {
         int brighness = getBrightness(context);
+        int orientation = getScreenOrientation(context);
         float[] sensors = getSensorValues(); //They are light,pressure, temperature and humidity respectively
         double[] memmory = getMemoryUsage(context); //They are availableMegs and percentAvailable respectively
         long[] networkStats = getNetworkStats(context); //They are txMB and rxMB respectively
@@ -51,15 +53,15 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
             //Creamos el objeto mlDataCollector (que usa weka) y le enviamos los datos que queremos registrar o probar contra el perfil
             MlDataCollector mlDataCollector = new MlDataCollector(context);
             if (!pref.getBoolean("train",false) && pref.getBoolean("test",false)){
-                double corr = mlDataCollector.test(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                double corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
                 updateConfidence(context, (int) corr);
-                Toast.makeText(context, "Test", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(context, "Test", Toast.LENGTH_SHORT).show();
             }else if (pref.getBoolean("train",false) && !pref.getBoolean("test",false)){
-                mlDataCollector.train(brighness, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
                 BackgroundService.builder.setContentText("Entrenando el modelo...");
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
                 notificationManager.notify(1001, BackgroundService.builder.build());
-                Toast.makeText(context, "Train", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(context, "Train", Toast.LENGTH_SHORT).show();
             }
             System.out.println("*----------------------*" + new SimpleDateFormat("MMM dd,yyyy HH:mm").format(new Date(System.currentTimeMillis())));
             //System.out.println(mlDataCollector.readArff(MlDataCollector.ARFFPATH).toString());//A partir de 425 instances ya no lo imprime bien, mejor mirar el archivo directamente
@@ -206,6 +208,14 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
             }
         }
         return new String[]{mostUsed, secondMostUsed};
+    }
+    private int getScreenOrientation(Context context) {
+        int orientation = context.getResources().getConfiguration().orientation;
+        if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+            return 1;
+        } else {
+            return 0;
+        }
     }
 
     @Override

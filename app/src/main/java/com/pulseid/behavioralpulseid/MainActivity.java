@@ -31,6 +31,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -113,6 +114,9 @@ public class MainActivity extends AppCompatActivity {
             if (stats.isEmpty()) {
                 btnUsage.setVisibility(View.VISIBLE);
                 infoView.setText(R.string.enable_usage_settings);
+                btnDown.setVisibility(View.INVISIBLE);
+                btnGo.setVisibility(View.INVISIBLE);
+                btnStop.setVisibility(View.INVISIBLE);
             }
         }
 
@@ -130,15 +134,23 @@ public class MainActivity extends AppCompatActivity {
                 if (findViewById(selectedId).equals(findViewById(R.id.radioButton))) {
                     editor.putBoolean("train",true);
                     editor.putBoolean("test",false);
-                    infoView.setText(R.string.info_train_mode);
+                    editor.putString("head_text", getString(R.string.info_train_mode));
+                    stopService(context);
+                    startService(context);
                 }else if (findViewById(selectedId).equals(findViewById(R.id.radioButton2))){
-                    editor.putBoolean("train",false);
-                    editor.putBoolean("test",true);
-                    infoView.setText(R.string.info_test_mode);
+                    if (areSufficientInstances(context.getFilesDir().getPath().concat("/dataset.arff"), 50)) { //Poner un nuevo valor coherente
+                        editor.putBoolean("train", false);
+                        editor.putBoolean("test", true);
+                        editor.putString("head_text", getString(R.string.info_test_mode));
+                        stopService(context);
+                        startService(context);
+                    }else{
+                        editor.putString("head_text", getString(R.string.info_test_not_available));
+                    }
                 }
                 editor.commit();
-                stopService(context);
-                startService(context);
+                infoView.setText(pref.getString("head_text", null));
+
             }
         });
 
@@ -195,6 +207,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         btnUsage.setVisibility(View.GONE);
+        btnGo.setVisibility(View.VISIBLE);
+        btnStop.setVisibility(View.VISIBLE);
+        btnDown.setVisibility(View.VISIBLE);
         editor.putString("head_text", getString(R.string.app_head_information));
         editor.commit();
         infoView.setText(pref.getString("head_text",null));
@@ -222,6 +237,23 @@ public class MainActivity extends AppCompatActivity {
         inChannel.transferTo(0, inChannel.size(), outChannel);
         inStream.close();
         outStream.close();
+    }
+
+    private boolean areSufficientInstances(String path, int number) {
+        if (new File(path).exists()) {
+            try {
+                BufferedReader reader = new BufferedReader(new FileReader(path));
+                int lines = 0;
+                while (reader.readLine() != null)
+                    lines++;
+                reader.close();
+                if (lines >= number)
+                    return true;
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+        return false;
     }
 
 }

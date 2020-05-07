@@ -20,5 +20,6 @@
         - Apps most used last day:
     </string>
     <string name="app_debugging"> </string>
+    <string name="info_test_not_available">Your model is not sufficiently trained. Please wait aproximately X time and try again. The application is still collecting data to train the model.</string>
 
 </resources>
