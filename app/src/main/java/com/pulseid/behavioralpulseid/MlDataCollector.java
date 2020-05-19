@@ -6,6 +6,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -15,10 +18,15 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
+import weka.attributeSelection.CorrelationAttributeEval;
 import weka.classifiers.Evaluation;
 import weka.classifiers.misc.IsolationForest;
 import weka.core.Attribute;
@@ -27,13 +35,13 @@ import weka.core.Instances;
 import weka.core.converters.ArffLoader;
 
 class MlDataCollector {
-    private static String[] packages = null;
     final Context context;
     public static String ARFFPATH;
     private static IsolationForest forest;
     public static String TESTPATH;
+    public static String PROFILEPATH;
     private static Instances data;
-    private static List attAppNames;
+    private static List attAppNames = new ArrayList();
     private static List attNomHour;
     private static List attNomDay;
     SharedPreferences pref;
@@ -42,23 +50,31 @@ class MlDataCollector {
 
     public MlDataCollector(Context context) {
         this.context = context;
-        ARFFPATH = context.getFilesDir().getPath().concat("/dataset.arff");
-        TESTPATH = context.getFilesDir().getPath().concat("/testset.arff");
-        packages = constructPackages();
         pref = context.getSharedPreferences("pulseidpreferences", 0); // 0 - for private mode
         editor = pref.edit();
+        editor.putStringSet("packages", constructPackages()).commit();
+
+        ARFFPATH = context.getFilesDir().getPath().concat("/dataset.arff");
+        TESTPATH = context.getFilesDir().getPath().concat("/testset.arff");
+        if (pref.getBoolean("eval-owner",true)){
+            PROFILEPATH = context.getFilesDir().getPath().concat("/ownerdataset.arff");
+        }else{
+            PROFILEPATH = context.getFilesDir().getPath().concat("/impostordataset.arff");
+        }
     }
 
-    private String[] constructPackages() {
-        String[] pcks = null;
+    private Set<String> constructPackages() {
+        Set<String> pcks = new HashSet<>();
+        //String[] pcks = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             UsageStatsManager mUsageStatsManager = (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
             List<UsageStats> stats = mUsageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, 0, System.currentTimeMillis());
-            pcks = new String[stats.size()];
-            int e = 0;
+            //pcks = new String[stats.size()];
+            //int e = 0;
             for (UsageStats model : stats) {
-                pcks[e] = model.getPackageName();
-                e++;
+                pcks.add(model.getPackageName());
+                //pcks[e] = model.getPackageName();
+                //e++;
             }
         }
         return pcks;
@@ -66,7 +82,6 @@ class MlDataCollector {
 
     public Instances createArffStruct() {
         ArrayList<Attribute> atts;
-        int i;
         // 1. set up attributes
         atts = new ArrayList<>();
         // - numeric
@@ -86,12 +101,9 @@ class MlDataCollector {
         atts.add(new Attribute("date"));
         atts.add(new Attribute("dia"));
 
-        if (packages.equals(null))
-            constructPackages();
-        attAppNames = new ArrayList();
-        for (String aPackage : packages) {
-            attAppNames.add(aPackage);
-        }
+        if (pref.getStringSet("packages",new HashSet<String>()).isEmpty())
+            editor.putStringSet("packages", constructPackages()).commit();
+
         atts.add(new Attribute("fromApp"));
         atts.add(new Attribute("toApp"));
         atts.add(new Attribute("lastMinuteApps"));
@@ -99,12 +111,14 @@ class MlDataCollector {
         atts.add(new Attribute("secondMostUsedLastDay"));
 
         List classAttr = new ArrayList();
-        classAttr.add(Integer.toString(-1));
         classAttr.add(Integer.toString(1));
+        classAttr.add(Integer.toString(-1));
         atts.add(new Attribute("itIs", classAttr));
 
         // 2. create Instances object
         data = new Instances("senseID behaviour", atts, 0);
+        data.setClassIndex(data.numAttributes()-1);
+
         return data;
     }
 
@@ -162,34 +176,28 @@ class MlDataCollector {
         attNomDay.add("Sunday");
         vals[14] = attNomDay.indexOf(new SimpleDateFormat("EEEE", Locale.ENGLISH).format(rightNow.getTime().getTime()));
 
-        //Below lines are created to ensure that attAppNames array is not null
-        if (attAppNames==null){
-            packages = constructPackages();
-            attAppNames = new ArrayList();
-            for (String aPackage : packages) {
-                attAppNames.add(aPackage);
-            }
-        }
-        if (attAppNames.indexOf(pausedToResumed[0]) == (-1) || attAppNames.indexOf(pausedToResumed[1]) == (-1) || attAppNames.indexOf(mostUsedLastDay[0]) == (-1) || attAppNames.indexOf(mostUsedLastDay[1]) == (-1)) {
-            packages = constructPackages();
-            attAppNames = new ArrayList();
-            for (String aPackage : packages) {
-                attAppNames.add(aPackage);
-            }
-        }
-
         if (pausedToResumed[0] == "") {
             pausedToResumed[0] = BackgroundService.lastAppInForeground;
         }
         if (pausedToResumed[1] == "") {
             pausedToResumed[1] = BackgroundService.lastAppInForeground;
         }
+        attAppNames.addAll(pref.getStringSet("packages", new HashSet<String>()));
+        if (pref.getStringSet("packages",new HashSet<String>()).isEmpty() || attAppNames.indexOf(pausedToResumed[0]) == (-1) || attAppNames.indexOf(pausedToResumed[1]) == (-1) || attAppNames.indexOf(mostUsedLastDay[0]) == (-1) || attAppNames.indexOf(mostUsedLastDay[1]) == (-1))
+            editor.putStringSet("packages",constructPackages()).commit();
+
+        System.out.println("pausedToResumed[0] = "+pausedToResumed[0] + " {" +attAppNames.indexOf(pausedToResumed[0])+"}\n" +
+                "pausedToResumed[1] = "+ pausedToResumed[1] + " {" + attAppNames.indexOf(pausedToResumed[1]) +"}\n" +
+                "mostUsedLastDay[0] = "+mostUsedLastDay[0]+"{"+attAppNames.indexOf(mostUsedLastDay[0])+"}\n" +
+                "mostUsedLastDay[1] = "+mostUsedLastDay[1]+"{"+attAppNames.indexOf(mostUsedLastDay[1])+"}\n");
         vals[15] = attAppNames.indexOf(pausedToResumed[0]);
         vals[16] = attAppNames.indexOf(pausedToResumed[1]);
         vals[17] = appsLastMinute;
         vals[18] = attAppNames.indexOf(mostUsedLastDay[0]);
         vals[19] = attAppNames.indexOf(mostUsedLastDay[1]);
-        vals[20] = 1;// is supposed to be always 1 (this will be the predicted value)
+
+
+        vals[20] = 0;// this is nominal value 1 (class value)
         // add
         editor.putString("params_text","Current collected parameters (last 1m):\n\n" +
                 " - Brighness: "+brighness+"\n" +
@@ -202,8 +210,7 @@ class MlDataCollector {
                 " - First app: " + pausedToResumed[0] +"\n"+
                 " - Last app: " + pausedToResumed[1] +"\n" +
                 " - Number of apps: "+appsLastMinute+"\n" +
-                " - Most used last day: "+mostUsedLastDay[0]+" & "+mostUsedLastDay[1]);
-        editor.commit();
+                " - Most used last day: "+mostUsedLastDay[0]+" & "+mostUsedLastDay[1]).commit();
         //MainActivity.paramsView.setText(pref.getString("params_text",null));
 
         return vals;
@@ -219,49 +226,38 @@ class MlDataCollector {
         writer.close();
     }
 
-    public void appendData(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats,
-                           long bluetoothStats, long lockTime, long unlocks,
-                           String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws IOException {
-        Instances arff = readArff(ARFFPATH);
-        double[] vals = collectData(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute,
-                mostUsedLastDay);
-        arff.add(new DenseInstance(1.0, vals));
-        writeArff(arff, ARFFPATH);
-    }
-
     public Instances readArff(String path) throws IOException {
         //READ FROM THE ARFF FILE THAT CONTAINS THE ARFF INFORMATION
         BufferedReader reader = new BufferedReader(new FileReader(path));
         ArffLoader.ArffReader arff = new ArffLoader.ArffReader(reader);
         Instances instances = arff.getData();
+        instances.setClassIndex(instances.numAttributes()-1);
         reader.close();
         return instances;
     }
 
     public void train(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
                       long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
-
-        if (!new File(MlDataCollector.ARFFPATH).exists()) {
-            Instances data = createArffStruct();
-            double[] vals = collectData(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
-            data.add(new DenseInstance(1.0, vals));
-            writeArff(data, MlDataCollector.ARFFPATH);
+        Instances data;
+        if (new File(MlDataCollector.ARFFPATH).exists()) {
+            data = readArff(ARFFPATH);
         } else {
-            createArffStruct();
-            appendData(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
+            data = createArffStruct();
         }
-        editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" New train instance added."+"\n"+pref.getString("debug_text",null));
-        editor.commit();
+        double[] vals = collectData(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
+        data.add(new DenseInstance(1.0, vals));
+        writeArff(data, ARFFPATH);
+        editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" New train instance added."+"\n"+pref.getString("debug_text",null)).commit();
         //MainActivity.debugView.setText(pref.getString("debug_text",null));
     }
 
-    public double test(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats,
-                       long bluetoothStats, long lockTime, long unlocks,
-                       String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
+    public double[] test(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats,
+                         long bluetoothStats, long lockTime, long unlocks,
+                         String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
         // Loading arff dataset
         Instances trainingDataSet = readArff(ARFFPATH);
         trainingDataSet.setClassIndex(trainingDataSet.numAttributes() - 1);
-        //Train with IsolationForest
+        //Build IsolationForest classifier
         forest = new IsolationForest();
         forest.buildClassifier(trainingDataSet);
 
@@ -272,19 +268,20 @@ class MlDataCollector {
             test = createArffStruct();
             test.add(new DenseInstance(1.0, testVals));
             test.setClassIndex(test.numAttributes() - 1);
-            writeArff(test, TESTPATH);
+            writeArff(test, PROFILEPATH);
         } else {    //If test file exists, reads it, removes older and adds new one
             test = readArff(TESTPATH);
+            test.add(new DenseInstance(1.0, testVals));
+            test.setClassIndex(test.numAttributes() - 1);
+            writeArff(test, PROFILEPATH);
             if (test.size() >= 20) {
                 test.delete(0);
                 for (int i = 0; i < (test.size() - 1); i++) {
                     test.set(i, test.instance(i + 1));
                 }
             }
-            test.add(new DenseInstance(1.0, testVals));
-            test.setClassIndex(test.numAttributes() - 1);
-            writeArff(test, TESTPATH);
         }
+        writeArff(test, TESTPATH);
 
         Evaluation eval = new Evaluation(trainingDataSet);
         eval.evaluateModel(forest, test);
@@ -293,18 +290,30 @@ class MlDataCollector {
                 eval.toSummaryString("\nResults\n======\n", false)
                         + "\n" + eval.toMatrixString()
         );*/
-        editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" Evaluation successful."+"\n"+pref.getString("debug_text",null));
-        editor.commit();
+        editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" Evaluation successful."+"\n"+pref.getString("debug_text",null)).commit();
         //MainActivity.debugView.setText(pref.getString("debug_text",null));
 
-        return eval.pctCorrect();
+
+        return new double[]{eval.pctCorrect(),eval.errorRate()};
     }
 
-    public double[] evaluate(Evaluation eval, Instances trainingDataset) {
-        double sensitivity = (eval.numTruePositives(trainingDataset.numAttributes() - 1) / eval.numTruePositives(trainingDataset.numAttributes() - 1)) + eval.numFalseNegatives(trainingDataset.numAttributes() - 1);
-        double specificity = (eval.numTrueNegatives(trainingDataset.numAttributes() - 1) / eval.numTrueNegatives(trainingDataset.numAttributes() - 1)) + eval.numFalsePositives(trainingDataset.numAttributes() - 1);
-        double accuracy = (eval.numTruePositives(trainingDataset.numAttributes() - 1) + eval.numTrueNegatives(trainingDataset.numAttributes() - 1)) / (eval.numTruePositives(trainingDataset.numAttributes() - 1) + eval.numFalsePositives(trainingDataset.numAttributes() - 1) + eval.numTrueNegatives(trainingDataset.numAttributes() - 1) + eval.numFalseNegatives(trainingDataset.numAttributes() - 1));
+    public double[] evaluate(Instances trainingDataset) {
 
-        return new double[]{sensitivity, specificity, accuracy};
+        double[] attEval = new double[21];
+        try {
+        trainingDataset.setClassIndex(trainingDataset.numAttributes() - 1);
+        CorrelationAttributeEval filter = new CorrelationAttributeEval();
+
+        filter.buildEvaluator(trainingDataset);
+
+        for (int i = 0; i<21;i++) {
+            attEval[i] = filter.evaluateAttribute(i);
+            System.out.println("attEval["+i+"] = "+attEval[i]);
+        }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return attEval;
     }
 }

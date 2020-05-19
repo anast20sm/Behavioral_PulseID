@@ -41,8 +41,23 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         double[] memmory = getMemoryUsage(context); //They are availableMegs and percentAvailable respectively
         long[] networkStats = getNetworkStats(context); //They are txMB and rxMB respectively
         long bluetoothStats = getBluetoothStats(context); //The sum of both tx and rx
-        long unlocks = BootOrScreenBroadcastReceiver.counter;
-        long lockTime = BootOrScreenBroadcastReceiver.screenOffTime;
+        //long unlocks = BootOrScreenBroadcastReceiver.counter;
+        long locks = BootOrScreenBroadcastReceiver.counter;//EXTRA
+        //long lockTime = BootOrScreenBroadcastReceiver.screenOffTime;
+        long unlockTime;
+        if (!BootOrScreenBroadcastReceiver.screenLocked){
+            unlockTime = BootOrScreenBroadcastReceiver.screenOnTime + (System.currentTimeMillis() - BootOrScreenBroadcastReceiver.startTimer);//EXTRA
+            BootOrScreenBroadcastReceiver.startTimer = System.currentTimeMillis();//EXTRA
+        } else {
+            unlockTime = BootOrScreenBroadcastReceiver.screenOnTime;//EXTRA
+        }
+        if (unlockTime>80000)//This is to avoid too large value after a reboot (due startTimer is not initialized)
+            unlockTime=60000;
+        System.out.println("ScreenOnTime: "+BootOrScreenBroadcastReceiver.screenOnTime+"\n" +
+                "UnlockTime: "+unlockTime+"\n" +
+                "Locks: "+locks);
+        BootOrScreenBroadcastReceiver.screenOnTime = 0;//EXTRA
+
         BootOrScreenBroadcastReceiver.counter = 0;
         BootOrScreenBroadcastReceiver.screenOffTime = 0;
         String[] pausedToResumed = getTopPkgChange(context); //They are firstPaused and lastResumed respectively
@@ -53,15 +68,26 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
             //Creamos el objeto mlDataCollector (que usa weka) y le enviamos los datos que queremos registrar o probar contra el perfil
             MlDataCollector mlDataCollector = new MlDataCollector(context);
             if (!pref.getBoolean("train",false) && pref.getBoolean("test",false)){
-                double corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                updateConfidence(context, (int) corr);
+                //double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, unlockTime, locks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                updateConfidence(context, corr[0], corr[1]);
                 //Toast.makeText(context, "Test", Toast.LENGTH_SHORT).show();
             }else if (pref.getBoolean("train",false) && !pref.getBoolean("test",false)){
-                mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                //mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, unlockTime, locks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 BackgroundService.builder.setContentText("Entrenando el modelo...");
+                BackgroundService.builder.setContentTitle("Behavioral PulseID (Training)");
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
                 notificationManager.notify(1001, BackgroundService.builder.build());
                 //Toast.makeText(context, "Train", Toast.LENGTH_SHORT).show();
+            }else if (pref.getBoolean("train",false) && pref.getBoolean("test",false)){
+                //double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, unlockTime, locks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                updateConfidence(context, corr[0], corr[1]);
+                if (corr[0]>85 && corr[1]<0.4) {
+                    //mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                    mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, unlockTime, locks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                }
             }
             System.out.println("*----------------------*" + new SimpleDateFormat("MMM dd,yyyy HH:mm").format(new Date(System.currentTimeMillis())));
             //System.out.println(mlDataCollector.readArff(MlDataCollector.ARFFPATH).toString());//A partir de 425 instances ya no lo imprime bien, mejor mirar el archivo directamente
@@ -70,17 +96,22 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
-    public void updateConfidence(Context context, int conf) {
-        if (conf < 50) {
-            BackgroundService.builder.setColor(0xcc0000);//Rojo
-        } else if (conf < 70) {
-            BackgroundService.builder.setColor(0xffcc00);//Naranja
-        } else if (conf < 90) {
-            BackgroundService.builder.setColor(0xfff00);//Amarillo
-        } else {
-            BackgroundService.builder.setColor(0x00cc66);//Verde
+    public void updateConfidence(Context context, double conf, double error) {
+        if (MainActivity.areSufficientInstances(MlDataCollector.TESTPATH,40)) {
+            if (conf < 50) {
+                BackgroundService.builder.setColor(0xcc0000);//Rojo
+            } else if (conf < 70) {
+                BackgroundService.builder.setColor(0xffcc00);//Naranja
+            } else if (conf < 90) {
+                BackgroundService.builder.setColor(0xfff00);//Amarillo
+            } else {
+                BackgroundService.builder.setColor(0x00cc66);//Verde
+            }
+            BackgroundService.builder.setContentText("El nivel de confianza es " + (int) conf + " con t.error=" + error);
+        }else{
+            BackgroundService.builder.setContentText("Recogiendo datos para evaluar.");
         }
-        BackgroundService.builder.setContentText("El nivel de confianza es " + conf);
+        BackgroundService.builder.setContentTitle("Behavioral PulseID (Evaluating)");
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         notificationManager.notify(1001, BackgroundService.builder.build());
     }

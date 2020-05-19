@@ -5,6 +5,7 @@
     <string name="enable_usage_settings">Please enable usage accessibility setting to let this application collect your behavioral data and identify you.</string>
     <string name="info_train_mode">The application is still collecting data to generate your behavioral profile and learn from it to identify you. Collected data is displayed below.</string>
     <string name="info_test_mode">The application is continuously collecting your behavior to verify you against your already trained profile. Collected data is displayed below.</string>
+    <string name="info_dynamic_mode">The application is collecting your behaviour to verify it against your already trained profile. If your score is >85, then this instance is added to your profile to raise its trust. Collected data is displayed below.</string>
 
     <string name="app_collect_values"
         >Current collected parameters (last 1m):\n\n
@@ -20,6 +21,6 @@
         - Apps most used last day:
     </string>
     <string name="app_debugging"> </string>
-    <string name="info_test_not_available">Your model is not sufficiently trained. Please wait aproximately X time and try again. The application is still collecting data to train the model.</string>
+    <string name="info_test_not_available">Your model is not sufficiently trained. Please train it for aproximately 1 day and try again. The application needs more data to train your model.</string>
 
 </resources>

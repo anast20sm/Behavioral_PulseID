@@ -98,9 +98,12 @@ public class MainActivity extends AppCompatActivity {
         if (pref.getBoolean("test", false) && !pref.getBoolean("train", false)){
             radioModeGroup.check(R.id.radioButton2);
             editor.putString("head_text", getString(R.string.info_train_mode));
-        }else if (!pref.getBoolean("test", false) && pref.getBoolean("train", false)){
+        }else if (!pref.getBoolean("test", false) && pref.getBoolean("train", false)) {
             radioModeGroup.check(R.id.radioButton);
             editor.putString("head_text", getString(R.string.info_test_mode));
+        }else if (pref.getBoolean("test", false) && pref.getBoolean("train", false)){
+            radioModeGroup.check(R.id.radioButton3);
+            editor.putString("head_text", getString(R.string.info_dynamic_mode));
         }else{
             editor.putString("head_text", getString(R.string.app_head_information));
         }
@@ -138,10 +141,44 @@ public class MainActivity extends AppCompatActivity {
                     stopService(context);
                     startService(context);
                 }else if (findViewById(selectedId).equals(findViewById(R.id.radioButton2))){
-                    if (areSufficientInstances(context.getFilesDir().getPath().concat("/dataset.arff"), 50)) { //Poner un nuevo valor coherente
-                        editor.putBoolean("train", false);
-                        editor.putBoolean("test", true);
-                        editor.putString("head_text", getString(R.string.info_test_mode));
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    builder.setCancelable(true);
+                    builder.setTitle("Select who you are");
+                    builder.setMessage("For evaluation purposes, please select if you are the device owner or an impostor.");
+                    builder.setNegativeButton("Owner",
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                        editor.putBoolean("eval-owner",true).commit();
+                                        startEvaluation(context);
+                                    }
+                                }
+                            });
+                    builder.setPositiveButton("Impostor",
+                            new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                    editor.putBoolean("eval-owner",false).commit();
+                                    startEvaluation(context);
+                                }
+                        }
+                    });
+                    builder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                        }
+                    });
+
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+                } else if (findViewById(selectedId).equals(findViewById(R.id.radioButton3))){
+                    if (areSufficientInstances(context.getFilesDir().getPath().concat("/dataset.arff"), 80)) { //Poner un nuevo valor coherente
+                        editor.putBoolean("train",true);
+                        editor.putBoolean("test",true);
+                        editor.putBoolean("eval-owner",true);
+                        editor.putString("head_text", getString(R.string.info_dynamic_mode));
                         stopService(context);
                         startService(context);
                     }else{
@@ -180,7 +217,9 @@ public class MainActivity extends AppCompatActivity {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                         if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
                                             copyFile(new File(context.getFilesDir().getPath().concat("/dataset.arff")), new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()+"/dataset.arff"));
-                                            copyFile(new File(context.getFilesDir().getPath().concat("/testset.arff")), new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()+"/testset.arff"));
+                                            copyFile(new File(context.getFilesDir().getPath().concat("/ownerdataset.arff")), new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()+"/ownerset.arff"));
+                                            copyFile(new File(context.getFilesDir().getPath().concat("/impostordataset.arff")), new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()+"/impostordataset.arff"));
+                                            Toast.makeText(context,"Files exported to 'Downloads'",Toast.LENGTH_LONG).show();
                                         }else {
                                             ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
                                         }
@@ -200,7 +239,23 @@ public class MainActivity extends AppCompatActivity {
                 dialog.show();
             }
         });
+    }
 
+    private void startEvaluation(Context context) {
+        if (areSufficientInstances(context.getFilesDir().getPath().concat("/dataset.arff"), 50)) { //Poner un nuevo valor coherente
+            editor.putBoolean("train", false);
+            editor.putBoolean("test", true);
+            editor.putString("head_text", getString(R.string.info_test_mode));
+            stopService(context);
+            File f = new File(context.getFilesDir().getPath().concat("/testset.arff"));
+            //To assure that each time evaluation starts, there is no data of the owner/impostor for the other
+            if (f.delete())
+                System.out.println("Testset deleted");
+            startService(context);
+        }else{
+            editor.putString("head_text", getString(R.string.info_test_not_available));
+        }
+        editor.commit();
     }
 
     @Override
@@ -210,8 +265,7 @@ public class MainActivity extends AppCompatActivity {
         btnGo.setVisibility(View.VISIBLE);
         btnStop.setVisibility(View.VISIBLE);
         btnDown.setVisibility(View.VISIBLE);
-        editor.putString("head_text", getString(R.string.app_head_information));
-        editor.commit();
+        editor.putString("head_text", getString(R.string.app_head_information)).commit();
         infoView.setText(pref.getString("head_text",null));
     }
 
@@ -230,16 +284,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void copyFile(File src, File dst) throws IOException {
-        FileInputStream inStream = new FileInputStream(src);
-        FileOutputStream outStream = new FileOutputStream(dst);
-        FileChannel inChannel = inStream.getChannel();
-        FileChannel outChannel = outStream.getChannel();
-        inChannel.transferTo(0, inChannel.size(), outChannel);
-        inStream.close();
-        outStream.close();
+        if (src.exists()) {
+            FileInputStream inStream = new FileInputStream(src);
+            FileOutputStream outStream = new FileOutputStream(dst);
+            FileChannel inChannel = inStream.getChannel();
+            FileChannel outChannel = outStream.getChannel();
+            inChannel.transferTo(0, inChannel.size(), outChannel);
+            inStream.close();
+            outStream.close();
+        }
     }
 
-    private boolean areSufficientInstances(String path, int number) {
+    public static boolean areSufficientInstances(String path, int number) {
         if (new File(path).exists()) {
             try {
                 BufferedReader reader = new BufferedReader(new FileReader(path));
