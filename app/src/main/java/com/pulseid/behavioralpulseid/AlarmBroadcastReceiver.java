@@ -7,12 +7,19 @@ import android.app.usage.NetworkStatsManager;
 import android.app.usage.UsageEvents;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothHeadset;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
+import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.Message;
 import android.os.RemoteException;
@@ -23,8 +30,11 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import static android.content.Context.ACTIVITY_SERVICE;
 import static android.content.Context.MODE_PRIVATE;
@@ -40,7 +50,8 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         float[] sensors = getSensorValues(); //They are light,pressure, temperature and humidity respectively
         double[] memmory = getMemoryUsage(context); //They are availableMegs and percentAvailable respectively
         long[] networkStats = getNetworkStats(context); //They are txMB and rxMB respectively
-        long bluetoothStats = getBluetoothStats(context); //The sum of both tx and rx
+        long bluetoothStats = getBluetoothStats(); //The sum of both tx and rx
+        System.out.println("Bluetooth results is: "+bluetoothStats);
         //long unlocks = BootOrScreenBroadcastReceiver.counter;
         long locks = BootOrScreenBroadcastReceiver.counter;//EXTRA
         //long lockTime = BootOrScreenBroadcastReceiver.screenOffTime;
@@ -193,49 +204,46 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         return new long[]{rxValues, txValues};
     }
 
-    private static long getBluetoothStats(Context context) {
-        //Returns an array of longs that represents the bluetooth data used during last interval
-        long rxValues = 0;
-        long txValues = 0;
-        //This method is only useful between versions M(6.0) and P(9). From 9 network stats will not be available
-        //Gets bluetooth statistics from last minute only
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            NetworkStatsManager networkStatsManager = (NetworkStatsManager) context.getSystemService(Context.NETWORK_STATS_SERVICE);
-            NetworkStats.Bucket bucket;
-            try {
-                bucket = networkStatsManager.querySummaryForDevice(ConnectivityManager.TYPE_BLUETOOTH, "", System.currentTimeMillis() - 60000, System.currentTimeMillis());
-                if (bucket != null) {
-                    rxValues = bucket.getRxBytes() / (1024);
-                    txValues = bucket.getTxBytes() / (1024);
-                    System.out.println("UID: " + bucket.getUid() + "rx: " + bucket.getRxBytes() + " tx: " + bucket.getTxBytes());
-                } else {
-                    System.out.println("El bucket de bluetooth es null");
-                }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
-        return (rxValues + txValues);
+    private static int getBluetoothStats() {
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        int enabled = 0;
+        if (mBluetoothAdapter.isEnabled())
+            enabled = 1;
+        if (mBluetoothAdapter.getProfileConnectionState(BluetoothHeadset.HEADSET) == BluetoothHeadset.STATE_CONNECTED)
+            enabled = 1;
+        int devices = mBluetoothAdapter.getBondedDevices().size();
+        return Integer.parseInt(""+enabled+devices);
     }
 
     private static String[] mostUsedAppLastDay(Context context) {
-        long interval = 24 * 60 * 60 * 1000;
+        long end = System.currentTimeMillis();
+        long begin = end - (24 * 60 * 60 * 1000);
         String mostUsed = "";
         long mostTotalTime = 0;
         String secondMostUsed = "";
-        long end = System.currentTimeMillis();
-        long begin = end - interval;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
             UsageStatsManager mUsageStatsManager = (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
             List<UsageStats> stats = mUsageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, begin, end); //The documentation
-            //says "Note: The begin and end times of the time range may be expanded to the nearest whole interval period." and is really
-            //returning data from last 10h
+            ArrayList<Long> al = new ArrayList<>();
+            //Añadimos todos los tiempos en una lista
             for (UsageStats model : stats) {
-                if (mostTotalTime <= model.getTotalTimeInForeground()) {
-                    mostTotalTime = model.getTotalTimeInForeground();
-                    secondMostUsed = mostUsed;
-                    mostUsed = model.getPackageName();
-                }
+                al.add(model.getTotalTimeInForeground());
+            }
+            //Obtenemos el mayor
+            mostTotalTime = Collections.max(al);
+            UsageStats mostToRemove = null;
+            //Obtenemos el nombre de éste
+            for (UsageStats model : stats){
+                if (model.getTotalTimeInForeground()==mostTotalTime)
+                    mostToRemove=model;
+            }
+            mostUsed=mostToRemove.getPackageName();
+            //Lo borramos de la lista y volvemos a hacer lo mismo
+            al.remove(stats.indexOf(mostToRemove));
+            mostTotalTime = Collections.max(al);
+            for (UsageStats model : stats){
+                if (model.getTotalTimeInForeground()==mostTotalTime)
+                    secondMostUsed=model.getPackageName();
             }
         }
         return new String[]{mostUsed, secondMostUsed};

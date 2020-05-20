@@ -139,6 +139,7 @@ class MlDataCollector {
         vals[6] = memmory[0];
         vals[7] = networkStats[0];
         vals[8] = networkStats[1];
+        System.out.println("Bluetooth results is: "+bluetoothStats);
         vals[9] = bluetoothStats;
         vals[10] = lockTime;
         vals[11] = unlocks;
