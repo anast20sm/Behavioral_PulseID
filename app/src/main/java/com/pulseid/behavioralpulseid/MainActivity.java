@@ -4,7 +4,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
@@ -13,12 +12,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Message;
 import android.provider.Settings;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
@@ -28,15 +24,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -49,12 +41,12 @@ public class MainActivity extends AppCompatActivity {
     private Button btnStop;
     private Button btnUsage;
     private Button btnDown;
-    TextView infoView;
-    public static TextView paramsView;
+    private TextView infoView;
+    private TextView paramsView;
     public static TextView debugView;
 
-    SharedPreferences pref;
-    SharedPreferences.Editor editor;
+    private SharedPreferences pref;
+    private SharedPreferences.Editor editor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -283,7 +275,7 @@ public class MainActivity extends AppCompatActivity {
         context.sendBroadcast(broadcastIntent);
     }
 
-    public void copyFile(File src, File dst) throws IOException {
+    private void copyFile(File src, File dst) throws IOException {
         if (src.exists()) {
             FileInputStream inStream = new FileInputStream(src);
             FileOutputStream outStream = new FileOutputStream(dst);

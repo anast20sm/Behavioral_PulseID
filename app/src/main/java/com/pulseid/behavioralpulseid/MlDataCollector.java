@@ -6,9 +6,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -18,37 +15,34 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
+import weka.attributeSelection.AttributeSelection;
 import weka.attributeSelection.CorrelationAttributeEval;
+import weka.attributeSelection.Ranker;
 import weka.classifiers.Evaluation;
 import weka.classifiers.misc.IsolationForest;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.Instances;
+import weka.core.Utils;
 import weka.core.converters.ArffLoader;
 
 class MlDataCollector {
-    final Context context;
-    public static String ARFFPATH;
-    private static IsolationForest forest;
-    public static String TESTPATH;
-    public static String PROFILEPATH;
-    private static Instances data;
+    private final Context context;
+    private static String ARFFPATH;
+    private static String TESTPATH;
+    private static String PROFILEPATH;
     private static List attAppNames = new ArrayList();
-    private static List attNomHour;
-    private static List attNomDay;
-    SharedPreferences pref;
-    SharedPreferences.Editor editor;
+    private SharedPreferences pref;
+    private SharedPreferences.Editor editor;
 
 
-    public MlDataCollector(Context context) {
+    MlDataCollector(Context context) {
         this.context = context;
         pref = context.getSharedPreferences("pulseidpreferences", 0); // 0 - for private mode
         editor = pref.edit();
@@ -80,7 +74,7 @@ class MlDataCollector {
         return pcks;
     }
 
-    public Instances createArffStruct() {
+    private Instances createArffStruct() {
         ArrayList<Attribute> atts;
         // 1. set up attributes
         atts = new ArrayList<>();
@@ -116,13 +110,13 @@ class MlDataCollector {
         atts.add(new Attribute("itIs", classAttr));
 
         // 2. create Instances object
-        data = new Instances("senseID behaviour", atts, 0);
+        Instances data = new Instances("senseID behaviour", atts, 0);
         data.setClassIndex(data.numAttributes()-1);
 
         return data;
     }
 
-    public double[] collectData(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
+    private double[] collectData(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
                                 long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute,
                                 String[] mostUsedLastDay) {
 
@@ -147,7 +141,7 @@ class MlDataCollector {
         Calendar rightNow = Calendar.getInstance();
         int currentHour = rightNow.get(Calendar.HOUR_OF_DAY);
 
-        attNomHour = new ArrayList(6);
+        List attNomHour = new ArrayList(6);
         for (int i = 0; i < 6; i++)
             attNomHour.add("temporal zone " + (i + 1));
         if (currentHour >= 0 && currentHour < 4)
@@ -167,7 +161,7 @@ class MlDataCollector {
             vals[13] = rightNow.get(Calendar.DAY_OF_MONTH);
         }
         // - day of week
-        attNomDay = new ArrayList(7);
+        List attNomDay = new ArrayList(7);
         attNomDay.add("Monday");
         attNomDay.add("Tuesday");
         attNomDay.add("Wednesday");
@@ -177,10 +171,10 @@ class MlDataCollector {
         attNomDay.add("Sunday");
         vals[14] = attNomDay.indexOf(new SimpleDateFormat("EEEE", Locale.ENGLISH).format(rightNow.getTime().getTime()));
 
-        if (pausedToResumed[0] == "") {
+        if (pausedToResumed[0].equals("")) {
             pausedToResumed[0] = BackgroundService.lastAppInForeground;
         }
-        if (pausedToResumed[1] == "") {
+        if (pausedToResumed[1].equals("")) {
             pausedToResumed[1] = BackgroundService.lastAppInForeground;
         }
         attAppNames.addAll(pref.getStringSet("packages", new HashSet<String>()));
@@ -217,7 +211,7 @@ class MlDataCollector {
         return vals;
     }
 
-    public void writeArff(Instances data, String path) throws IOException {
+    private void writeArff(Instances data, String path) throws IOException {
         //WRITE THE COLLECTED INFORMATION INTO THE ARFF FILE
         FileWriter file = new FileWriter(path);
         BufferedWriter writer = new BufferedWriter(file);
@@ -227,7 +221,7 @@ class MlDataCollector {
         writer.close();
     }
 
-    public Instances readArff(String path) throws IOException {
+    private Instances readArff(String path) throws IOException {
         //READ FROM THE ARFF FILE THAT CONTAINS THE ARFF INFORMATION
         BufferedReader reader = new BufferedReader(new FileReader(path));
         ArffLoader.ArffReader arff = new ArffLoader.ArffReader(reader);
@@ -237,8 +231,8 @@ class MlDataCollector {
         return instances;
     }
 
-    public void train(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
-                      long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
+    void train(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
+               long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
         Instances data;
         if (new File(MlDataCollector.ARFFPATH).exists()) {
             data = readArff(ARFFPATH);
@@ -252,14 +246,14 @@ class MlDataCollector {
         //MainActivity.debugView.setText(pref.getString("debug_text",null));
     }
 
-    public double[] test(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats,
-                         long bluetoothStats, long lockTime, long unlocks,
-                         String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
+    double[] test(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats,
+                  long bluetoothStats, long lockTime, long unlocks,
+                  String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
         // Loading arff dataset
         Instances trainingDataSet = readArff(ARFFPATH);
         trainingDataSet.setClassIndex(trainingDataSet.numAttributes() - 1);
         //Build IsolationForest classifier
-        forest = new IsolationForest();
+        IsolationForest forest = new IsolationForest();
         forest.buildClassifier(trainingDataSet);
 
         // Evaluate classifier
@@ -294,27 +288,29 @@ class MlDataCollector {
         editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" Evaluation successful."+"\n"+pref.getString("debug_text",null)).commit();
         //MainActivity.debugView.setText(pref.getString("debug_text",null));
 
-
-        return new double[]{eval.pctCorrect(),eval.errorRate()};
+        //evaluate(trainingDataSet);
+        return new double[]{eval.pctCorrect(),eval.meanAbsoluteError()};
     }
 
-    public double[] evaluate(Instances trainingDataset) {
+    public void evaluate(Instances data) {
 
-        double[] attEval = new double[21];
         try {
-        trainingDataset.setClassIndex(trainingDataset.numAttributes() - 1);
-        CorrelationAttributeEval filter = new CorrelationAttributeEval();
+        AttributeSelection attsel = new AttributeSelection();  // package weka.attributeSelection!
+        CorrelationAttributeEval eval = new CorrelationAttributeEval();
+        Ranker ranker = new Ranker();
+        attsel.setEvaluator(eval);
+        attsel.setSearch(ranker);
+        attsel.SelectAttributes(data);
 
-        filter.buildEvaluator(trainingDataset);
-
-        for (int i = 0; i<21;i++) {
-            attEval[i] = filter.evaluateAttribute(i);
-            System.out.println("attEval["+i+"] = "+attEval[i]);
-        }
-
+        // obtain the attribute indices that were selected
+        int[] indices = attsel.selectedAttributes();
+        System.out.println(Utils.arrayToString(indices));
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return attEval;
+
+
+
+        //return attEval;
     }
 }

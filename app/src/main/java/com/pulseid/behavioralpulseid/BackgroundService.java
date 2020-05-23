@@ -29,7 +29,7 @@ public class BackgroundService extends Service implements SensorEventListener {
     public static boolean stoppingAlarm = false; //Esta variable se utiliza en BootOrScreenBroadcastReceiver (está aquí para tener persistencia)
     public static String lastAppInForeground = "";
 
-    SharedPreferences pref;
+    private SharedPreferences pref;
 
 
     @Override

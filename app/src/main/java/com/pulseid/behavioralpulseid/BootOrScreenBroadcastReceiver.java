@@ -1,5 +1,6 @@
 package com.pulseid.behavioralpulseid;
 
+import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -8,11 +9,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Handler;
-import android.widget.Toast;
-
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 import static android.content.Context.MODE_PRIVATE;
 
@@ -24,9 +20,10 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
     public static long screenOnTime = 0;
     private static AlarmManager alarmManager;
     private static PendingIntent pendingIntent;
-    SharedPreferences pref;
-    SharedPreferences.Editor editor;
+    private SharedPreferences pref;
+    private SharedPreferences.Editor editor;
 
+    @SuppressLint("ApplySharedPref")
     @Override
     public void onReceive(Context context, Intent intent) {
         pref = context.getSharedPreferences("pulseidpreferences", MODE_PRIVATE);
@@ -94,8 +91,7 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
                 }
                 return null;
             }
-        };
-        asyncTask.execute();
+        }.execute();
     }
     private void cancelAlarm() {
         if (pendingIntent != null && alarmManager != null) {

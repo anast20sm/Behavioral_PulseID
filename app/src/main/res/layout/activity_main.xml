@@ -103,7 +103,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toEndOf="@+id/btnStop"
-        app:layout_constraintTop_toBottomOf="@+id/infoView" />
+        app:layout_constraintTop_toBottomOf="@+id/infoView"
+        tools:ignore="HardcodedText" />
 
     <Button
         android:id="@+id/btnStop"

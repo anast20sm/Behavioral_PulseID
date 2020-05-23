@@ -1,14 +1,12 @@
 package com.pulseid.behavioralpulseid;
 
 import android.app.ActivityManager;
-import android.app.PendingIntent;
 import android.app.usage.NetworkStats;
 import android.app.usage.NetworkStatsManager;
 import android.app.usage.UsageEvents;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -16,17 +14,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkInfo;
-import android.net.NetworkRequest;
 import android.os.Build;
-import android.os.Message;
 import android.os.RemoteException;
 import android.provider.Settings;
-import android.widget.Toast;
-
-import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import java.text.SimpleDateFormat;
@@ -34,17 +24,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 
 import static android.content.Context.ACTIVITY_SERVICE;
 import static android.content.Context.MODE_PRIVATE;
 
 public class AlarmBroadcastReceiver extends BroadcastReceiver {
     private int appsLastInterval = 1;
-    SharedPreferences pref;
-    SharedPreferences.Editor editor;
+    private SharedPreferences pref;
+    private SharedPreferences.Editor editor;
 
-    public void retrieveData(Context context) {
+    private void retrieveData(Context context) {
         int brighness = getBrightness(context);
         int orientation = getScreenOrientation(context);
         float[] sensors = getSensorValues(); //They are light,pressure, temperature and humidity respectively
@@ -107,7 +96,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
-    public void updateConfidence(Context context, double conf, double error) {
+    private void updateConfidence(Context context, double conf, double error) {
         if (MainActivity.areSufficientInstances(MlDataCollector.TESTPATH,40)) {
             if (conf < 50) {
                 BackgroundService.builder.setColor(0xcc0000);//Rojo
@@ -136,7 +125,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         String pausedPackage = "";
         /*This boolean is used to take only first paused package, so now what this method does
          * is retrieve first paused and last resumend packages during last minute*/
-        Boolean firstHunted = true;
+        boolean firstHunted = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
             //Object to manage the usage stats of the device
             UsageStatsManager mUsageStatsManager = (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
@@ -159,7 +148,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
                 }
             }
         }
-        if (resumedPackage != "") {
+        if (!resumedPackage.equals("")) {
             BackgroundService.lastAppInForeground = resumedPackage;
         }
         return new String[]{pausedPackage, resumedPackage};
@@ -219,7 +208,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         long end = System.currentTimeMillis();
         long begin = end - (24 * 60 * 60 * 1000);
         String mostUsed = "";
-        long mostTotalTime = 0;
+        long mostTotalTime;
         String secondMostUsed = "";
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
             UsageStatsManager mUsageStatsManager = (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
