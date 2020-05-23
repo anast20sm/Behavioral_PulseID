@@ -35,7 +35,7 @@ import weka.core.converters.ArffLoader;
 class MlDataCollector {
     private final Context context;
     private static String ARFFPATH;
-    private static String TESTPATH;
+    static String TESTPATH;
     private static String PROFILEPATH;
     private static List attAppNames = new ArrayList();
     private SharedPreferences pref;
