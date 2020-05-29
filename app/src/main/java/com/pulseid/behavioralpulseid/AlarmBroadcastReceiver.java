@@ -7,7 +7,10 @@ import android.app.usage.UsageEvents;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -39,7 +42,6 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         double[] memmory = getMemoryUsage(context); //They are availableMegs and percentAvailable respectively
         long[] networkStats = getNetworkStats(context); //They are txMB and rxMB respectively
         long bluetoothStats = getBluetoothStats(); //The sum of both tx and rx
-        System.out.println("Bluetooth results is: "+bluetoothStats);
         long unlocks = BootOrScreenBroadcastReceiver.counter;
         long lockTime = BootOrScreenBroadcastReceiver.screenOffTime;
         System.out.println("UnlockTime: "+lockTime+"\n" +
@@ -182,12 +184,13 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
     private static int getBluetoothStats() {
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         int enabled = 0;
-        if (mBluetoothAdapter.isEnabled())
+        if (mBluetoothAdapter.isEnabled() || mBluetoothAdapter.getProfileConnectionState(BluetoothHeadset.HEADSET) == BluetoothHeadset.STATE_CONNECTED)
             enabled = 1;
-        if (mBluetoothAdapter.getProfileConnectionState(BluetoothHeadset.HEADSET) == BluetoothHeadset.STATE_CONNECTED)
-            enabled = 1;
-        int devices = mBluetoothAdapter.getBondedDevices().size();
-        return Integer.parseInt(""+enabled+devices);
+        int bondedDevices = mBluetoothAdapter.getBondedDevices().size();
+        System.out.println("Bluetooth results is: "+ enabled + bondedDevices + BackgroundService.connectedDevices);
+        if (enabled==1)
+            return Integer.parseInt(""+bondedDevices + BackgroundService.connectedDevices);
+        else return 0;
     }
 
     private static String[] mostUsedAppLastDay(Context context) {

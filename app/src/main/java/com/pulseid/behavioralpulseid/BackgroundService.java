@@ -4,6 +4,8 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -28,9 +30,23 @@ public class BackgroundService extends Service implements SensorEventListener {
     public static NotificationCompat.Builder builder = null;
     public static boolean stoppingAlarm = false; //Esta variable se utiliza en BootOrScreenBroadcastReceiver (está aquí para tener persistencia)
     public static String lastAppInForeground = "";
+    public static int connectedDevices = 0;
 
     private SharedPreferences pref;
 
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
+                connectedDevices++;
+            } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
+                connectedDevices--;
+            }
+            System.out.println("Devices connected: "+connectedDevices);
+        }
+    };
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -55,8 +71,7 @@ public class BackgroundService extends Service implements SensorEventListener {
                 .setTimeoutAfter(-1)
                 .setShowWhen(false)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(contentIntent)
-                .setTimeoutAfter(-1);
+                .setContentIntent(contentIntent);
         startForeground(1001, builder.build());
     }
 
@@ -69,6 +84,13 @@ public class BackgroundService extends Service implements SensorEventListener {
         filter.addAction(Intent.ACTION_SCREEN_ON);
         filter.setPriority(IntentFilter.SYSTEM_HIGH_PRIORITY);
         registerReceiver(mBootReceiver, filter);
+
+        IntentFilter bluetoothFilter = new IntentFilter();
+        bluetoothFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        bluetoothFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
+        bluetoothFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        this.registerReceiver(mReceiver, bluetoothFilter);
+
         return START_STICKY;
     }
 
