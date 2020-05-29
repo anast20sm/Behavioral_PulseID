@@ -14,16 +14,13 @@ import static android.content.Context.MODE_PRIVATE;
 
 public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
     public static long startTimer;
-    public static boolean screenLocked = false;
     public static long counter = 0;
     public static long screenOffTime = 0;
-    public static long screenOnTime = 0;
     private static AlarmManager alarmManager;
     private static PendingIntent pendingIntent;
     private SharedPreferences pref;
     private SharedPreferences.Editor editor;
 
-    @SuppressLint("ApplySharedPref")
     @Override
     public void onReceive(Context context, Intent intent) {
         pref = context.getSharedPreferences("pulseidpreferences", MODE_PRIVATE);
@@ -41,19 +38,14 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
                 startAlarm(context);
             }
         } else if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
-            screenLocked = true;
             stopAlarm();
-            //startTimer = System.currentTimeMillis();
-            screenOnTime += (System.currentTimeMillis()-startTimer);//EXTRA
-            startTimer = System.currentTimeMillis();//EXTRA
-            counter++;//EXTRA
+            startTimer = System.currentTimeMillis();
         } else if (intent.getAction().equals(Intent.ACTION_SCREEN_ON)) {
-            screenLocked = false;
             startAlarm(context);
-            //long endTimer = System.currentTimeMillis();
-            //screenOffTime += (endTimer - startTimer);
-            startTimer = System.currentTimeMillis();//EXTRA
-            //counter++;
+            long endTimer = System.currentTimeMillis();
+            screenOffTime += (endTimer - startTimer);
+            System.out.println("Este bloqueo ha durado"+(endTimer-startTimer));
+            counter++;
         } else if (intent.getAction().equals("startService")) {
             editor.putBoolean("stop_service", false).commit();
             startAlarm(context);
@@ -91,7 +83,8 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
                 }
                 return null;
             }
-        }.execute();
+        };
+        asyncTask.execute();
     }
     private void cancelAlarm() {
         if (pendingIntent != null && alarmManager != null) {

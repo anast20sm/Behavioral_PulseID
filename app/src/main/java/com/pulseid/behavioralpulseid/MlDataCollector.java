@@ -133,7 +133,6 @@ class MlDataCollector {
         vals[6] = memmory[0];
         vals[7] = networkStats[0];
         vals[8] = networkStats[1];
-        System.out.println("Bluetooth results is: "+bluetoothStats);
         vals[9] = bluetoothStats;
         vals[10] = lockTime;
         vals[11] = unlocks;
@@ -280,11 +279,10 @@ class MlDataCollector {
 
         Evaluation eval = new Evaluation(trainingDataSet);
         eval.evaluateModel(forest, test);
-
-        /*System.out.println(
+        System.out.println(
                 eval.toSummaryString("\nResults\n======\n", false)
                         + "\n" + eval.toMatrixString()
-        );*/
+        );
         editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" Evaluation successful."+"\n"+pref.getString("debug_text",null)).commit();
         //MainActivity.debugView.setText(pref.getString("debug_text",null));
 

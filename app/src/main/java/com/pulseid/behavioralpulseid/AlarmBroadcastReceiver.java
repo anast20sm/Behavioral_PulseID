@@ -31,7 +31,6 @@ import static android.content.Context.MODE_PRIVATE;
 public class AlarmBroadcastReceiver extends BroadcastReceiver {
     private int appsLastInterval = 1;
     private SharedPreferences pref;
-    private SharedPreferences.Editor editor;
 
     private void retrieveData(Context context) {
         int brighness = getBrightness(context);
@@ -41,23 +40,10 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         long[] networkStats = getNetworkStats(context); //They are txMB and rxMB respectively
         long bluetoothStats = getBluetoothStats(); //The sum of both tx and rx
         System.out.println("Bluetooth results is: "+bluetoothStats);
-        //long unlocks = BootOrScreenBroadcastReceiver.counter;
-        long locks = BootOrScreenBroadcastReceiver.counter;//EXTRA
-        //long lockTime = BootOrScreenBroadcastReceiver.screenOffTime;
-        long unlockTime;
-        if (!BootOrScreenBroadcastReceiver.screenLocked){
-            unlockTime = BootOrScreenBroadcastReceiver.screenOnTime + (System.currentTimeMillis() - BootOrScreenBroadcastReceiver.startTimer);//EXTRA
-            BootOrScreenBroadcastReceiver.startTimer = System.currentTimeMillis();//EXTRA
-        } else {
-            unlockTime = BootOrScreenBroadcastReceiver.screenOnTime;//EXTRA
-        }
-        if (unlockTime>80000)//This is to avoid too large value after a reboot (due startTimer is not initialized)
-            unlockTime=60000;
-        System.out.println("ScreenOnTime: "+BootOrScreenBroadcastReceiver.screenOnTime+"\n" +
-                "UnlockTime: "+unlockTime+"\n" +
-                "Locks: "+locks);
-        BootOrScreenBroadcastReceiver.screenOnTime = 0;//EXTRA
-
+        long unlocks = BootOrScreenBroadcastReceiver.counter;
+        long lockTime = BootOrScreenBroadcastReceiver.screenOffTime;
+        System.out.println("UnlockTime: "+lockTime+"\n" +
+                "Locks: "+unlocks);
         BootOrScreenBroadcastReceiver.counter = 0;
         BootOrScreenBroadcastReceiver.screenOffTime = 0;
         String[] pausedToResumed = getTopPkgChange(context); //They are firstPaused and lastResumed respectively
@@ -69,12 +55,12 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
             MlDataCollector mlDataCollector = new MlDataCollector(context);
             if (!pref.getBoolean("train",false) && pref.getBoolean("test",false)){
                 //double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, unlockTime, locks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 updateConfidence(context, corr[0], corr[1]);
                 //Toast.makeText(context, "Test", Toast.LENGTH_SHORT).show();
             }else if (pref.getBoolean("train",false) && !pref.getBoolean("test",false)){
                 //mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, unlockTime, locks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 BackgroundService.builder.setContentText("Entrenando el modelo...");
                 BackgroundService.builder.setContentTitle("Behavioral PulseID (Training)");
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
@@ -82,11 +68,11 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
                 //Toast.makeText(context, "Train", Toast.LENGTH_SHORT).show();
             }else if (pref.getBoolean("train",false) && pref.getBoolean("test",false)){
                 //double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, unlockTime, locks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 updateConfidence(context, corr[0], corr[1]);
                 if (corr[0]>85 && corr[1]<0.4) {
                     //mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                    mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, unlockTime, locks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                    mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 }
             }
             System.out.println("*----------------------*" + new SimpleDateFormat("MMM dd,yyyy HH:mm").format(new Date(System.currentTimeMillis())));
@@ -252,7 +238,6 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         //This method has to collect unlock counter, sensor values, pausedToResumedPackage, brightness,
         //memory usage, usagestats and networkstats
         pref = context.getSharedPreferences("pulseidpreferences", MODE_PRIVATE); // 0 - for private mode
-        editor = pref.edit();
         retrieveData(context);
     }
 }
