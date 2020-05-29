@@ -7,10 +7,7 @@ import android.app.usage.UsageEvents;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
-import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -38,7 +35,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
     private void retrieveData(Context context) {
         int brighness = getBrightness(context);
         int orientation = getScreenOrientation(context);
-        float[] sensors = getSensorValues(); //They are light,pressure, temperature and humidity respectively
+        float lightSensor = BackgroundService.light; //They are light,pressure, temperature and humidity respectively
         double[] memmory = getMemoryUsage(context); //They are availableMegs and percentAvailable respectively
         long[] networkStats = getNetworkStats(context); //They are txMB and rxMB respectively
         long bluetoothStats = getBluetoothStats(); //The sum of both tx and rx
@@ -57,12 +54,12 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
             MlDataCollector mlDataCollector = new MlDataCollector(context);
             if (!pref.getBoolean("train",false) && pref.getBoolean("test",false)){
                 //double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                double[] corr = mlDataCollector.test(brighness,orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 updateConfidence(context, corr[0], corr[1]);
                 //Toast.makeText(context, "Test", Toast.LENGTH_SHORT).show();
             }else if (pref.getBoolean("train",false) && !pref.getBoolean("test",false)){
                 //mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                mlDataCollector.train(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 BackgroundService.builder.setContentText("Entrenando el modelo...");
                 BackgroundService.builder.setContentTitle("Behavioral PulseID (Training)");
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
@@ -70,11 +67,11 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
                 //Toast.makeText(context, "Train", Toast.LENGTH_SHORT).show();
             }else if (pref.getBoolean("train",false) && pref.getBoolean("test",false)){
                 //double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                double[] corr = mlDataCollector.test(brighness,orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 updateConfidence(context, corr[0], corr[1]);
                 if (corr[0]>85 && corr[1]<0.4) {
                     //mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                    mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                    mlDataCollector.train(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 }
             }
             System.out.println("*----------------------*" + new SimpleDateFormat("MMM dd,yyyy HH:mm").format(new Date(System.currentTimeMillis())));
@@ -102,10 +99,6 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         BackgroundService.builder.setContentTitle("Behavioral PulseID (Evaluating)");
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         notificationManager.notify(1001, BackgroundService.builder.build());
-    }
-
-    private static float[] getSensorValues() {
-        return new float[]{BackgroundService.light, BackgroundService.pressure, BackgroundService.temp, BackgroundService.hum};
     }
 
     private String[] getTopPkgChange(Context context) {
@@ -189,7 +182,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         int bondedDevices = mBluetoothAdapter.getBondedDevices().size();
         System.out.println("Bluetooth results is: "+ enabled + bondedDevices + BackgroundService.connectedDevices);
         if (enabled==1)
-            return Integer.parseInt(""+bondedDevices + BackgroundService.connectedDevices);
+            return Integer.parseInt(""+ enabled + bondedDevices + BackgroundService.connectedDevices);
         else return 0;
     }
 

@@ -127,15 +127,15 @@ public class BackgroundService extends Service implements SensorEventListener {
 
     private void registerSensorsListener(Context context) {
         SensorManager sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        Sensor ambTmp = sensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
         Sensor light = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        /*Sensor ambTmp = sensorManager.getDefaultSensor(Sensor.TYPE_AMBIENT_TEMPERATURE);
         Sensor pressure = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
-        Sensor humidity = sensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY);
+        Sensor humidity = sensorManager.getDefaultSensor(Sensor.TYPE_RELATIVE_HUMIDITY);*/
 
-        sensorManager.registerListener(this, ambTmp, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, light, SensorManager.SENSOR_DELAY_NORMAL);
+        /*sensorManager.registerListener(this, ambTmp, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, pressure, SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(this, humidity, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, humidity, SensorManager.SENSOR_DELAY_NORMAL);*/
     }
 
     @Override
@@ -143,13 +143,13 @@ public class BackgroundService extends Service implements SensorEventListener {
         synchronized (this) {
             if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
                 light = event.values[0];
-            } else if (event.sensor.getType() == Sensor.TYPE_PRESSURE) {
+            }/* else if (event.sensor.getType() == Sensor.TYPE_PRESSURE) {
                 pressure = event.values[0];
             } else if (event.sensor.getType() == Sensor.TYPE_AMBIENT_TEMPERATURE) {
                 temp = event.values[0];
             } else if (event.sensor.getType() == Sensor.TYPE_RELATIVE_HUMIDITY) {
                 hum = event.values[0];
-            }
+            }*/
         }
     }
 

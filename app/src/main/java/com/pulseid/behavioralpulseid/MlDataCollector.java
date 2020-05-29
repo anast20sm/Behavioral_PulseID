@@ -82,9 +82,6 @@ class MlDataCollector {
         atts.add(new Attribute("brightness"));
         atts.add(new Attribute("orientation"));
         atts.add(new Attribute("light"));
-        atts.add(new Attribute("pressure"));
-        atts.add(new Attribute("ambient temperature"));
-        atts.add(new Attribute("humidity"));
         atts.add(new Attribute("memmory usage"));
         atts.add(new Attribute("network statistics Tx"));
         atts.add(new Attribute("network statistics Rx"));
@@ -116,26 +113,23 @@ class MlDataCollector {
         return data;
     }
 
-    private double[] collectData(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
+    private double[] collectData(float brighness, int orientation, float lightSensor, double[] memmory, long[] networkStats, long bluetoothStats,
                                 long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute,
                                 String[] mostUsedLastDay) {
 
         // 3. fill with data
         // first instance
-        double[] vals = new double[21];
+        double[] vals = new double[18];
         // - numeric
         vals[0] = brighness;
         vals[1] = orientation;
-        vals[2] = sensors[0];
-        vals[3] = sensors[1];
-        vals[4] = sensors[2];
-        vals[5] = sensors[3];
-        vals[6] = memmory[0];
-        vals[7] = networkStats[0];
-        vals[8] = networkStats[1];
-        vals[9] = bluetoothStats;
-        vals[10] = lockTime;
-        vals[11] = unlocks;
+        vals[2] = lightSensor;
+        vals[3] = memmory[0];
+        vals[4] = networkStats[0];
+        vals[5] = networkStats[1];
+        vals[6] = bluetoothStats;
+        vals[7] = lockTime;
+        vals[8] = unlocks;
         // - nominal
         Calendar rightNow = Calendar.getInstance();
         int currentHour = rightNow.get(Calendar.HOUR_OF_DAY);
@@ -144,20 +138,20 @@ class MlDataCollector {
         for (int i = 0; i < 6; i++)
             attNomHour.add("temporal zone " + (i + 1));
         if (currentHour >= 0 && currentHour < 4)
-            vals[12] = attNomHour.indexOf("temporal zone 1");
+            vals[9] = attNomHour.indexOf("temporal zone 1");
         else if (currentHour >= 4 && currentHour < 8)
-            vals[12] = attNomHour.indexOf("temporal zone 2");
+            vals[9] = attNomHour.indexOf("temporal zone 2");
         else if (currentHour >= 8 && currentHour < 12)
-            vals[12] = attNomHour.indexOf("temporal zone 3");
+            vals[9] = attNomHour.indexOf("temporal zone 3");
         else if (currentHour >= 12 && currentHour < 16)
-            vals[12] = attNomHour.indexOf("temporal zone 4");
+            vals[9] = attNomHour.indexOf("temporal zone 4");
         else if (currentHour >= 16 && currentHour < 20)
-            vals[12] = attNomHour.indexOf("temporal zone 5");
+            vals[9] = attNomHour.indexOf("temporal zone 5");
         else if (currentHour >= 20 && currentHour < 24)
-            vals[12] = attNomHour.indexOf("temporal zone 6");
+            vals[9] = attNomHour.indexOf("temporal zone 6");
         // - date (only the day of month)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vals[13] = rightNow.get(Calendar.DAY_OF_MONTH);
+            vals[10] = rightNow.get(Calendar.DAY_OF_MONTH);
         }
         // - day of week
         List attNomDay = new ArrayList(7);
@@ -168,7 +162,7 @@ class MlDataCollector {
         attNomDay.add("Friday");
         attNomDay.add("Saturday");
         attNomDay.add("Sunday");
-        vals[14] = attNomDay.indexOf(new SimpleDateFormat("EEEE", Locale.ENGLISH).format(rightNow.getTime().getTime()));
+        vals[11] = attNomDay.indexOf(new SimpleDateFormat("EEEE", Locale.ENGLISH).format(rightNow.getTime().getTime()));
 
         if (pausedToResumed[0].equals("")) {
             pausedToResumed[0] = BackgroundService.lastAppInForeground;
@@ -180,25 +174,29 @@ class MlDataCollector {
         if (pref.getStringSet("packages",new HashSet<String>()).isEmpty() || attAppNames.indexOf(pausedToResumed[0]) == (-1) || attAppNames.indexOf(pausedToResumed[1]) == (-1) || attAppNames.indexOf(mostUsedLastDay[0]) == (-1) || attAppNames.indexOf(mostUsedLastDay[1]) == (-1))
             editor.putStringSet("packages",constructPackages()).commit();
 
-        System.out.println("pausedToResumed[0] = "+pausedToResumed[0] + " {" +attAppNames.indexOf(pausedToResumed[0])+"}\n" +
+        /*System.out.println("pausedToResumed[0] = "+pausedToResumed[0] + " {" +attAppNames.indexOf(pausedToResumed[0])+"}\n" +
                 "pausedToResumed[1] = "+ pausedToResumed[1] + " {" + attAppNames.indexOf(pausedToResumed[1]) +"}\n" +
                 "mostUsedLastDay[0] = "+mostUsedLastDay[0]+"{"+attAppNames.indexOf(mostUsedLastDay[0])+"}\n" +
-                "mostUsedLastDay[1] = "+mostUsedLastDay[1]+"{"+attAppNames.indexOf(mostUsedLastDay[1])+"}\n");
-        vals[15] = attAppNames.indexOf(pausedToResumed[0]);
-        vals[16] = attAppNames.indexOf(pausedToResumed[1]);
-        vals[17] = appsLastMinute;
-        vals[18] = attAppNames.indexOf(mostUsedLastDay[0]);
-        vals[19] = attAppNames.indexOf(mostUsedLastDay[1]);
+                "mostUsedLastDay[1] = "+mostUsedLastDay[1]+"{"+attAppNames.indexOf(mostUsedLastDay[1])+"}\n");*/
+        vals[12] = attAppNames.indexOf(pausedToResumed[0]);
+        vals[13] = attAppNames.indexOf(pausedToResumed[1]);
+        vals[14] = appsLastMinute;
+        vals[15] = attAppNames.indexOf(mostUsedLastDay[0]);
+        vals[16] = attAppNames.indexOf(mostUsedLastDay[1]);
 
+        vals[17] = 0;// this is nominal value 1 (class value)
 
-        vals[20] = 0;// this is nominal value 1 (class value)
-        // add
+        //Print all
+        String bluetoothPrint = String.valueOf(bluetoothStats);
+        if (bluetoothStats>100)
+             bluetoothPrint = String.valueOf(bluetoothStats-100);
+
         editor.putString("params_text","Current collected parameters (last 1m):\n\n" +
                 " - Brighness: "+brighness+"\n" +
-                " - Sensors: "+sensors[0]+", "+sensors[1]+", "+sensors[2]+", "+sensors[3]+"\n" +
+                " - Light sensor: "+lightSensor+"\n" +
                 " - Memory: "+memmory[0]+" kB"+"("+(int)memmory[1]+"%)\n" +
                 " - NetworkStats: "+networkStats[0]+" MB(Tx), "+networkStats[1]+" MB(Rx)\n" +
-                " - BluetoothStats: "+bluetoothStats+" MB\n" +
+                " - BluetoothStats: "+bluetoothPrint+" (bonded | connected)\n" +
                 " - LockedTime: "+lockTime+" s\n" +
                 " - Unlocks: "+unlocks+"\n" +
                 " - First app: " + pausedToResumed[0] +"\n"+
@@ -230,7 +228,7 @@ class MlDataCollector {
         return instances;
     }
 
-    void train(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats, long bluetoothStats,
+    void train(float brighness, int orientation, float lightSensor, double[] memmory, long[] networkStats, long bluetoothStats,
                long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
         Instances data;
         if (new File(MlDataCollector.ARFFPATH).exists()) {
@@ -238,14 +236,14 @@ class MlDataCollector {
         } else {
             data = createArffStruct();
         }
-        double[] vals = collectData(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
+        double[] vals = collectData(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
         data.add(new DenseInstance(1.0, vals));
         writeArff(data, ARFFPATH);
         editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" New train instance added."+"\n"+pref.getString("debug_text",null)).commit();
         //MainActivity.debugView.setText(pref.getString("debug_text",null));
     }
 
-    double[] test(float brighness, int orientation, float[] sensors, double[] memmory, long[] networkStats,
+    double[] test(float brighness, int orientation, float lightSensor, double[] memmory, long[] networkStats,
                   long bluetoothStats, long lockTime, long unlocks,
                   String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
         // Loading arff dataset
@@ -257,7 +255,7 @@ class MlDataCollector {
 
         // Evaluate classifier
         Instances test;
-        double[] testVals = collectData(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
+        double[] testVals = collectData(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastMinute, mostUsedLastDay);
         if (!new File(TESTPATH).exists()) { //If test instances do not exist, create the file and write last instance
             test = createArffStruct();
             test.add(new DenseInstance(1.0, testVals));
