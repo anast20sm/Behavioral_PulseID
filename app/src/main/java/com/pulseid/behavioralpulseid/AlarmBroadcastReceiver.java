@@ -41,8 +41,6 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         long bluetoothStats = getBluetoothStats(); //The sum of both tx and rx
         long unlocks = BootOrScreenBroadcastReceiver.counter;
         long lockTime = BootOrScreenBroadcastReceiver.screenOffTime;
-        System.out.println("UnlockTime: "+lockTime+"\n" +
-                "Locks: "+unlocks);
         BootOrScreenBroadcastReceiver.counter = 0;
         BootOrScreenBroadcastReceiver.screenOffTime = 0;
         String[] pausedToResumed = getTopPkgChange(context); //They are firstPaused and lastResumed respectively

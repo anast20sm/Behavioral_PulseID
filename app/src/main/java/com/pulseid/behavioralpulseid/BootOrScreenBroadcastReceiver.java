@@ -44,7 +44,6 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
             startAlarm(context);
             long endTimer = System.currentTimeMillis();
             screenOffTime += (endTimer - startTimer);
-            System.out.println("Este bloqueo ha durado"+(endTimer-startTimer));
             counter++;
         } else if (intent.getAction().equals("startService")) {
             editor.putBoolean("stop_service", false).commit();

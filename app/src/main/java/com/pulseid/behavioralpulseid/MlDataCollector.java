@@ -204,7 +204,6 @@ class MlDataCollector {
                 " - Number of apps: "+appsLastMinute+"\n" +
                 " - Most used last day: "+mostUsedLastDay[0]+" & "+mostUsedLastDay[1]).commit();
         //MainActivity.paramsView.setText(pref.getString("params_text",null));
-
         return vals;
     }
 
