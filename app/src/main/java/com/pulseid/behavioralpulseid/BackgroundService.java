@@ -23,9 +23,6 @@ import androidx.core.app.NotificationCompat;
 public class BackgroundService extends Service implements SensorEventListener {
 
     public static float light;
-    public static float pressure;
-    public static float temp;
-    public static float hum;
     private BootOrScreenBroadcastReceiver mBootReceiver = null;
     public static NotificationCompat.Builder builder = null;
     public static boolean stoppingAlarm = false; //Esta variable se utiliza en BootOrScreenBroadcastReceiver (está aquí para tener persistencia)
@@ -65,7 +62,7 @@ public class BackgroundService extends Service implements SensorEventListener {
                 new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
 
         builder = new NotificationCompat.Builder(this, "NOTIFICATION_CHANNEL")
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_stat_name)
                 .setContentTitle("Behavioral PulseID")
                 .setContentText("Iniciando servicio...")
                 .setTimeoutAfter(-1)
@@ -89,7 +86,7 @@ public class BackgroundService extends Service implements SensorEventListener {
         bluetoothFilter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         bluetoothFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED);
         bluetoothFilter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
-        this.registerReceiver(mReceiver, bluetoothFilter);
+        registerReceiver(mReceiver, bluetoothFilter);
 
         return START_STICKY;
     }
@@ -99,7 +96,9 @@ public class BackgroundService extends Service implements SensorEventListener {
         super.onDestroy();
         if (mBootReceiver != null) {
             unregisterReceiver(mBootReceiver);
-            System.out.println("BootAndScreenReceiver unregistered");
+        }
+        if (mReceiver != null) {
+            unregisterReceiver(mReceiver);
         }
         //From Android 8, Android does not allow to have a persistent service,
         // so we need to restart it each time it is closed by the OS

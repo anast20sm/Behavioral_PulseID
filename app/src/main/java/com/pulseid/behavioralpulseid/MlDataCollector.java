@@ -59,16 +59,11 @@ class MlDataCollector {
 
     private Set<String> constructPackages() {
         Set<String> pcks = new HashSet<>();
-        //String[] pcks = null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             UsageStatsManager mUsageStatsManager = (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
             List<UsageStats> stats = mUsageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, 0, System.currentTimeMillis());
-            //pcks = new String[stats.size()];
-            //int e = 0;
             for (UsageStats model : stats) {
                 pcks.add(model.getPackageName());
-                //pcks[e] = model.getPackageName();
-                //e++;
             }
         }
         return pcks;
