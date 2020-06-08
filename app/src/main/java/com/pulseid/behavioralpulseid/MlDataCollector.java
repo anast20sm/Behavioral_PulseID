@@ -165,14 +165,18 @@ class MlDataCollector {
         if (pausedToResumed[1].equals("")) {
             pausedToResumed[1] = BackgroundService.lastAppInForeground;
         }
-        attAppNames.addAll(pref.getStringSet("packages", new HashSet<String>()));
-        if (pref.getStringSet("packages",new HashSet<String>()).isEmpty() || attAppNames.indexOf(pausedToResumed[0]) == (-1) || attAppNames.indexOf(pausedToResumed[1]) == (-1) || attAppNames.indexOf(mostUsedLastDay[0]) == (-1) || attAppNames.indexOf(mostUsedLastDay[1]) == (-1))
-            editor.putStringSet("packages",constructPackages()).commit();
 
-        /*System.out.println("pausedToResumed[0] = "+pausedToResumed[0] + " {" +attAppNames.indexOf(pausedToResumed[0])+"}\n" +
+
+        if (pref.getStringSet("packages",new HashSet<String>()).isEmpty() || attAppNames.indexOf(pausedToResumed[0]) == (-1) || attAppNames.indexOf(pausedToResumed[1]) == (-1) || attAppNames.indexOf(mostUsedLastDay[0]) == (-1) || attAppNames.indexOf(mostUsedLastDay[1]) == (-1)){
+            editor.putStringSet("packages",constructPackages()).commit();
+            attAppNames.addAll(pref.getStringSet("packages", new HashSet<String>()));
+        }
+
+
+        System.out.println("pausedToResumed[0] = "+pausedToResumed[0] + " {" +attAppNames.indexOf(pausedToResumed[0])+"}\n" +
                 "pausedToResumed[1] = "+ pausedToResumed[1] + " {" + attAppNames.indexOf(pausedToResumed[1]) +"}\n" +
                 "mostUsedLastDay[0] = "+mostUsedLastDay[0]+"{"+attAppNames.indexOf(mostUsedLastDay[0])+"}\n" +
-                "mostUsedLastDay[1] = "+mostUsedLastDay[1]+"{"+attAppNames.indexOf(mostUsedLastDay[1])+"}\n");*/
+                "mostUsedLastDay[1] = "+mostUsedLastDay[1]+"{"+attAppNames.indexOf(mostUsedLastDay[1])+"}\n");
         vals[12] = attAppNames.indexOf(pausedToResumed[0]);
         vals[13] = attAppNames.indexOf(pausedToResumed[1]);
         vals[14] = appsLastMinute;
@@ -254,13 +258,11 @@ class MlDataCollector {
             test = createArffStruct();
             test.add(new DenseInstance(1.0, testVals));
             test.setClassIndex(test.numAttributes() - 1);
-            writeArff(test, PROFILEPATH);
         } else {    //If test file exists, reads it, removes older and adds new one
             test = readArff(TESTPATH);
             test.add(new DenseInstance(1.0, testVals));
             test.setClassIndex(test.numAttributes() - 1);
-            writeArff(test, PROFILEPATH);
-            if (test.size() >= 20) {
+            if (test.size() >= 21) {
                 test.delete(0);
                 for (int i = 0; i < (test.size() - 1); i++) {
                     test.set(i, test.instance(i + 1));
@@ -268,6 +270,14 @@ class MlDataCollector {
             }
         }
         writeArff(test, TESTPATH);
+        if (new File(PROFILEPATH).exists()){
+            Instances ownerset = readArff(PROFILEPATH);
+            ownerset.add(new DenseInstance(1.0, testVals));
+            ownerset.setClassIndex(test.numAttributes() - 1);
+            writeArff(ownerset, PROFILEPATH);
+        }else{
+            writeArff(test,PROFILEPATH);
+        }
 
         Evaluation eval = new Evaluation(trainingDataSet);
         eval.evaluateModel(forest, test);

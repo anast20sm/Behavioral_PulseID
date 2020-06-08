@@ -208,9 +208,10 @@ public class MainActivity extends AppCompatActivity {
                                 try {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                         if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                                            copyFile(new File(context.getFilesDir().getPath().concat("/dataset.arff")), new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()+"/dataset.arff"));
-                                            copyFile(new File(context.getFilesDir().getPath().concat("/ownerdataset.arff")), new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()+"/ownerset.arff"));
-                                            copyFile(new File(context.getFilesDir().getPath().concat("/impostordataset.arff")), new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()+"/impostordataset.arff"));
+                                            copyFile(new File(context.getFilesDir().getPath().concat("/dataset.arff")), new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()+"/"+File.separator,"dataset.arff"));
+                                            copyFile(new File(context.getFilesDir().getPath().concat("/ownerdataset.arff")), new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()+"/"+File.separator,"ownerdataset.arff"));
+                                            copyFile(new File(context.getFilesDir().getPath().concat("/impostordataset.arff")), new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getPath()+"/"+File.separator,"impostordataset.arff"));
+
                                             Toast.makeText(context,"Files exported to 'Downloads'",Toast.LENGTH_LONG).show();
                                         }else {
                                             ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
@@ -234,13 +235,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startEvaluation(Context context) {
-        if (areSufficientInstances(context.getFilesDir().getPath().concat("/dataset.arff"), 50)) { //Poner un nuevo valor coherente
+        if (areSufficientInstances(context.getFilesDir().getPath().concat("/dataset.arff"), 150)) { //Poner un nuevo valor coherente
             editor.putBoolean("train", false);
             editor.putBoolean("test", true);
             editor.putString("head_text", getString(R.string.info_test_mode));
             stopService(context);
             File f = new File(context.getFilesDir().getPath().concat("/testset.arff"));
-            //To assure that each time evaluation starts, there is no data of the owner/impostor for the other
+            //To assure that each time evaluation starts, there is no data of the owner/impostor for the other one
             if (f.delete())
                 System.out.println("Testset deleted");
             startService(context);

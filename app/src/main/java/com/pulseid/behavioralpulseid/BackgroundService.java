@@ -25,7 +25,8 @@ public class BackgroundService extends Service implements SensorEventListener {
     public static float light;
     private BootOrScreenBroadcastReceiver mBootReceiver = null;
     public static NotificationCompat.Builder builder = null;
-    public static boolean stoppingAlarm = false; //Esta variable se utiliza en BootOrScreenBroadcastReceiver (está aquí para tener persistencia)
+    //Estas variables se utilizan en BootOrScreenBroadcastReceiver (están aquí para asegurar persistencia)
+    public static boolean stoppingAlarm = false;
     public static String lastAppInForeground = "";
     public static int connectedDevices = 0;
 

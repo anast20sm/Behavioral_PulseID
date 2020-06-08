@@ -19,6 +19,7 @@ import android.os.RemoteException;
 import android.provider.Settings;
 import androidx.core.app.NotificationManagerCompat;
 
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,7 +68,7 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
                 //double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
                 double[] corr = mlDataCollector.test(brighness,orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 updateConfidence(context, corr[0], corr[1]);
-                if (corr[0]>85 && corr[1]<0.4) {
+                if (corr[0]>85 && corr[1]<0.48) {
                     //mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
                     mlDataCollector.train(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 }
@@ -90,7 +91,8 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
             } else {
                 BackgroundService.builder.setColor(0x00cc66);//Verde
             }
-            BackgroundService.builder.setContentText("El nivel de confianza es " + (int) conf + " con t.error=" + error);
+            DecimalFormat df = new DecimalFormat("##.##");
+            BackgroundService.builder.setContentText("Nivel de confianza " + (int) conf + "(t.error=" + df.format(error) +")");
         }else{
             BackgroundService.builder.setContentText("Recogiendo datos para evaluar.");
         }
