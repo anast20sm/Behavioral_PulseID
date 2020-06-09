@@ -1,6 +1,5 @@
 package com.pulseid.behavioralpulseid;
 
-import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -12,7 +11,7 @@ import android.os.Build;
 
 import static android.content.Context.MODE_PRIVATE;
 
-public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
+public class BootOrScreenBR extends BroadcastReceiver {
     public static long startTimer;
     public static long counter = 0;
     public static long screenOffTime = 0;
@@ -99,7 +98,7 @@ public class BootOrScreenBroadcastReceiver extends BroadcastReceiver {
             BackgroundService.stoppingAlarm = false;
         } else if (alarmManager == null) {
             alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            Intent alarmIntent = new Intent(context, AlarmBroadcastReceiver.class);
+            Intent alarmIntent = new Intent(context, PeriodicBR.class);
             pendingIntent = PendingIntent.getBroadcast(context, 0, alarmIntent, 0);
             alarmManager.setInexactRepeating(AlarmManager.RTC, System.currentTimeMillis(), 1000 /*ms*/ * 60 /*s*/, pendingIntent);
         }

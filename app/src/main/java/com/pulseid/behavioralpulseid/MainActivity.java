@@ -263,17 +263,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startService(Context context) {
-        Intent broadcastIntent = new Intent();
-        broadcastIntent.setAction("startService");
-        broadcastIntent.setClass(context, BootOrScreenBroadcastReceiver.class);
-        context.sendBroadcast(broadcastIntent);
+        Intent brIntent = new Intent();
+        brIntent.setAction("startService");
+        brIntent.setClass(context, BootOrScreenBR.class);
+        context.sendBroadcast(brIntent);
     }
 
     private void stopService(Context context) {
-        Intent broadcastIntent = new Intent();
-        broadcastIntent.setAction("stopService");
-        broadcastIntent.setClass(context, BootOrScreenBroadcastReceiver.class);
-        context.sendBroadcast(broadcastIntent);
+        Intent brIntent = new Intent();
+        brIntent.setAction("stopService");
+        brIntent.setClass(context, BootOrScreenBR.class);
+        context.sendBroadcast(brIntent);
     }
 
     private void copyFile(File src, File dst) throws IOException {

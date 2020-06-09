@@ -23,9 +23,9 @@ import androidx.core.app.NotificationCompat;
 public class BackgroundService extends Service implements SensorEventListener {
 
     public static float light;
-    private BootOrScreenBroadcastReceiver mBootReceiver = null;
+    private BootOrScreenBR mBootReceiver = null;
     public static NotificationCompat.Builder builder = null;
-    //Estas variables se utilizan en BootOrScreenBroadcastReceiver (están aquí para asegurar persistencia)
+    //Estas variables se utilizan en BootOrScreenBR (están aquí para asegurar persistencia)
     public static boolean stoppingAlarm = false;
     public static String lastAppInForeground = "";
     public static int connectedDevices = 0;
@@ -76,7 +76,7 @@ public class BackgroundService extends Service implements SensorEventListener {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Toast.makeText(this, "SERVICE STARTED", Toast.LENGTH_SHORT).show();
-        mBootReceiver = new BootOrScreenBroadcastReceiver();
+        mBootReceiver = new BootOrScreenBR();
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_OFF);
         filter.addAction(Intent.ACTION_SCREEN_ON);
@@ -106,7 +106,7 @@ public class BackgroundService extends Service implements SensorEventListener {
         if (!pref.getBoolean("stop_service",false)) {
             Intent broadcastIntent = new Intent();
             broadcastIntent.setAction("startService");
-            broadcastIntent.setClass(this, BootOrScreenBroadcastReceiver.class);
+            broadcastIntent.setClass(this, BootOrScreenBR.class);
             this.sendBroadcast(broadcastIntent);
         }
     }

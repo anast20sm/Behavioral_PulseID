@@ -29,7 +29,7 @@ import java.util.List;
 import static android.content.Context.ACTIVITY_SERVICE;
 import static android.content.Context.MODE_PRIVATE;
 
-public class AlarmBroadcastReceiver extends BroadcastReceiver {
+public class PeriodicBR extends BroadcastReceiver {
     private int appsLastInterval = 1;
     private SharedPreferences pref;
 
@@ -40,10 +40,10 @@ public class AlarmBroadcastReceiver extends BroadcastReceiver {
         double[] memmory = getMemoryUsage(context); //They are availableMegs and percentAvailable respectively
         long[] networkStats = getNetworkStats(context); //They are txMB and rxMB respectively
         long bluetoothStats = getBluetoothStats(); //The sum of both tx and rx
-        long unlocks = BootOrScreenBroadcastReceiver.counter;
-        long lockTime = BootOrScreenBroadcastReceiver.screenOffTime;
-        BootOrScreenBroadcastReceiver.counter = 0;
-        BootOrScreenBroadcastReceiver.screenOffTime = 0;
+        long unlocks = BootOrScreenBR.counter;
+        long lockTime = BootOrScreenBR.screenOffTime;
+        BootOrScreenBR.counter = 0;
+        BootOrScreenBR.screenOffTime = 0;
         String[] pausedToResumed = getTopPkgChange(context); //They are firstPaused and lastResumed respectively
         String[] mostUsedLastDay = mostUsedAppLastDay(context);
 
