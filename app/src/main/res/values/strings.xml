@@ -9,16 +9,17 @@
 
     <string name="app_collect_values"
         >Current collected parameters (last 1m):\n\n
-        - Brighness:\n
-        - Sensors:\n
-        - Memmory:\n
-        - NetworkStats:\n
-        - BluetoothStats:\n
-        - LockedTime:\n
-        - Unlocks:\n
-        - App changes:\n
+        - Brightness:\n
+        - Light:\n
+        - Memory usage:\n
+        - Network stats:\n
+        - Bluetooth stats:\n
+        - Locked time:\n
+        - Locks:\n
+        - First App:\n
+        - Last App:\n
         - Number of apps:\n
-        - Apps most used last day:
+        - Most used last day:
     </string>
     <string name="app_debugging"> </string>
     <string name="info_test_not_available">Your model is not sufficiently trained. Please train it for approximately 1 day and try again. The application needs more data to train your model.</string>

@@ -29,7 +29,7 @@ import java.util.List;
 import static android.content.Context.ACTIVITY_SERVICE;
 import static android.content.Context.MODE_PRIVATE;
 
-public class PeriodicBR extends BroadcastReceiver {
+public class AlarmBR extends BroadcastReceiver {
     private int appsLastInterval = 1;
     private SharedPreferences pref;
 
@@ -49,39 +49,39 @@ public class PeriodicBR extends BroadcastReceiver {
 
 
         try {
-            //Creamos el objeto mlDataCollector (que usa weka) y le enviamos los datos que queremos registrar o probar contra el perfil
-            MlDataCollector mlDataCollector = new MlDataCollector(context);
+            //Creamos el objeto mlDataHandler (que usa weka) y le enviamos los datos que queremos registrar o probar contra el perfil
+            MlDataHandler mlDataHandler = new MlDataHandler(context);
             if (!pref.getBoolean("train",false) && pref.getBoolean("test",false)){
-                //double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                double[] corr = mlDataCollector.test(brighness,orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                //double[] corr = mlDataHandler.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                double[] corr = mlDataHandler.test(brighness,orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 updateConfidence(context, corr[0], corr[1]);
                 //Toast.makeText(context, "Test", Toast.LENGTH_SHORT).show();
             }else if (pref.getBoolean("train",false) && !pref.getBoolean("test",false)){
-                //mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                mlDataCollector.train(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
-                BackgroundService.builder.setContentText("Entrenando el modelo...");
+                //mlDataHandler.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                mlDataHandler.train(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                BackgroundService.builder.setContentText("Training model...");
                 BackgroundService.builder.setContentTitle("Behavioral PulseID (Training)");
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
                 notificationManager.notify(1001, BackgroundService.builder.build());
                 //Toast.makeText(context, "Train", Toast.LENGTH_SHORT).show();
             }else if (pref.getBoolean("train",false) && pref.getBoolean("test",false)){
-                //double[] corr = mlDataCollector.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                double[] corr = mlDataCollector.test(brighness,orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                //double[] corr = mlDataHandler.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                double[] corr = mlDataHandler.test(brighness,orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 updateConfidence(context, corr[0], corr[1]);
                 if (corr[0]>85 && corr[1]<0.48) {
-                    //mlDataCollector.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
-                    mlDataCollector.train(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
+                    //mlDataHandler.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+                    mlDataHandler.train(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 }
             }
             System.out.println("*----------------------*" + new SimpleDateFormat("MMM dd,yyyy HH:mm").format(new Date(System.currentTimeMillis())));
-            //System.out.println(mlDataCollector.readArff(MlDataCollector.ARFFPATH).toString());//A partir de 425 instances ya no lo imprime bien, mejor mirar el archivo directamente
+            //System.out.println(mlDataHandler.readArff(MlDataHandler.ARFFPATH).toString());//A partir de 425 instances ya no lo imprime bien, mejor mirar el archivo directamente
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     private void updateConfidence(Context context, double conf, double error) {
-        if (MainActivity.areSufficientInstances(MlDataCollector.TESTPATH,40)) {
+        if (MainActivity.areSufficientInstances(MlDataHandler.TESTPATH,40)) {
             if (conf < 50) {
                 BackgroundService.builder.setColor(0xcc0000);//Rojo
             } else if (conf < 70) {
@@ -92,9 +92,9 @@ public class PeriodicBR extends BroadcastReceiver {
                 BackgroundService.builder.setColor(0x00cc66);//Verde
             }
             DecimalFormat df = new DecimalFormat("##.##");
-            BackgroundService.builder.setContentText("Nivel de confianza " + (int) conf + "(t.error=" + df.format(error) +")");
+            BackgroundService.builder.setContentText("Validation: " + (int) conf + "% (t.e=" + df.format(error) +")");
         }else{
-            BackgroundService.builder.setContentText("Recogiendo datos para evaluar.");
+            BackgroundService.builder.setContentText("Collecting samples to evaluate.");
         }
         BackgroundService.builder.setContentTitle("Behavioral PulseID (Evaluating)");
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);

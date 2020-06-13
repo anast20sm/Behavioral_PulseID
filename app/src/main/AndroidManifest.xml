@@ -20,7 +20,7 @@
         android:theme="@style/AppTheme"
         android:fullBackupContent="@xml/backup_descriptor">
 
-        <receiver android:name=".PeriodicBR" />
+        <receiver android:name=".AlarmBR" />
         <receiver android:name=".BootOrScreenBR">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

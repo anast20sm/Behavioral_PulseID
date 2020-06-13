@@ -1,5 +1,6 @@
 package com.pulseid.behavioralpulseid;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -19,6 +20,8 @@ import android.os.IBinder;
 import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
+
+
 
 public class BackgroundService extends Service implements SensorEventListener {
 
@@ -65,7 +68,7 @@ public class BackgroundService extends Service implements SensorEventListener {
         builder = new NotificationCompat.Builder(this, "NOTIFICATION_CHANNEL")
                 .setSmallIcon(R.drawable.ic_stat_name)
                 .setContentTitle("Behavioral PulseID")
-                .setContentText("Iniciando servicio...")
+                .setContentText("Initiating service...")
                 .setTimeoutAfter(-1)
                 .setShowWhen(false)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)

@@ -98,7 +98,7 @@ public class BootOrScreenBR extends BroadcastReceiver {
             BackgroundService.stoppingAlarm = false;
         } else if (alarmManager == null) {
             alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            Intent alarmIntent = new Intent(context, PeriodicBR.class);
+            Intent alarmIntent = new Intent(context, AlarmBR.class);
             pendingIntent = PendingIntent.getBroadcast(context, 0, alarmIntent, 0);
             alarmManager.setInexactRepeating(AlarmManager.RTC, System.currentTimeMillis(), 1000 /*ms*/ * 60 /*s*/, pendingIntent);
         }

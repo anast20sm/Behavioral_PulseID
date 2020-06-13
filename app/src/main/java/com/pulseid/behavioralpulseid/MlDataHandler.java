@@ -21,18 +21,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import weka.attributeSelection.AttributeSelection;
-import weka.attributeSelection.CorrelationAttributeEval;
-import weka.attributeSelection.Ranker;
 import weka.classifiers.Evaluation;
 import weka.classifiers.misc.IsolationForest;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.Instances;
-import weka.core.Utils;
 import weka.core.converters.ArffLoader;
 
-class MlDataCollector {
+class MlDataHandler {
     private final Context context;
     private static String ARFFPATH;
     static String TESTPATH;
@@ -42,7 +38,7 @@ class MlDataCollector {
     private SharedPreferences.Editor editor;
 
 
-    MlDataCollector(Context context) {
+    MlDataHandler(Context context) {
         this.context = context;
         pref = context.getSharedPreferences("pulseidpreferences", 0); // 0 - for private mode
         editor = pref.edit();
@@ -74,35 +70,35 @@ class MlDataCollector {
         // 1. set up attributes
         atts = new ArrayList<>();
         // - numeric
-        atts.add(new Attribute("brightness"));
-        atts.add(new Attribute("orientation"));
-        atts.add(new Attribute("light"));
-        atts.add(new Attribute("memmory usage"));
-        atts.add(new Attribute("network statistics Tx"));
-        atts.add(new Attribute("network statistics Rx"));
-        atts.add(new Attribute("bluetooth statistics"));
-        atts.add(new Attribute("unlock time"));
-        atts.add(new Attribute("unlocks"));
-        atts.add(new Attribute("horario"));
-        atts.add(new Attribute("date"));
-        atts.add(new Attribute("dia"));
+        atts.add(new Attribute("Brightness"));
+        atts.add(new Attribute("Orientation"));
+        atts.add(new Attribute("Light"));
+        atts.add(new Attribute("Memory usage"));
+        atts.add(new Attribute("Tx Network statistics"));
+        atts.add(new Attribute("Rx Network statistics"));
+        atts.add(new Attribute("Bluetooth statistics"));
+        atts.add(new Attribute("Locked time"));
+        atts.add(new Attribute("Locks"));
+        atts.add(new Attribute("Schedule"));
+        atts.add(new Attribute("Date"));
+        atts.add(new Attribute("Day"));
 
         if (pref.getStringSet("packages",new HashSet<String>()).isEmpty())
             editor.putStringSet("packages", constructPackages()).commit();
 
-        atts.add(new Attribute("fromApp"));
-        atts.add(new Attribute("toApp"));
-        atts.add(new Attribute("lastMinuteApps"));
-        atts.add(new Attribute("mostUsedLastDay"));
-        atts.add(new Attribute("secondMostUsedLastDay"));
+        atts.add(new Attribute("First App"));
+        atts.add(new Attribute("Last App"));
+        atts.add(new Attribute("Apps last minute"));
+        atts.add(new Attribute("Most used last day"));
+        atts.add(new Attribute("Second most used last day"));
 
         List classAttr = new ArrayList();
         classAttr.add(Integer.toString(1));
         classAttr.add(Integer.toString(-1));
-        atts.add(new Attribute("itIs", classAttr));
+        atts.add(new Attribute("Legit user", classAttr));
 
         // 2. create Instances object
-        Instances data = new Instances("senseID behaviour", atts, 0);
+        Instances data = new Instances("Behavioral PulseID", atts, 0);
         data.setClassIndex(data.numAttributes()-1);
 
         return data;
@@ -191,13 +187,13 @@ class MlDataCollector {
              bluetoothPrint = String.valueOf(bluetoothStats-100);
 
         editor.putString("params_text","Current collected parameters (last 1m):\n\n" +
-                " - Brighness: "+brighness+"\n" +
-                " - Light sensor: "+lightSensor+"\n" +
-                " - Memory: "+memmory[0]+" kB"+"("+(int)memmory[1]+"%)\n" +
-                " - NetworkStats: "+networkStats[0]+" MB(Tx), "+networkStats[1]+" MB(Rx)\n" +
-                " - BluetoothStats: "+bluetoothPrint+" (bonded | connected)\n" +
-                " - LockedTime: "+lockTime+" s\n" +
-                " - Unlocks: "+unlocks+"\n" +
+                " - Brightness: "+brighness+"\n" +
+                " - Light: "+lightSensor+"\n" +
+                " - Memory usage: "+memmory[0]+" kB"+"("+(int)memmory[1]+"%)\n" +
+                " - Network stats: "+networkStats[0]+" MB(Tx), "+networkStats[1]+" MB(Rx)\n" +
+                " - Bluetooth stats: "+bluetoothPrint+" (bonded | connected)\n" +
+                " - Locked time: "+lockTime+" s\n" +
+                " - Locks: "+unlocks+"\n" +
                 " - First app: " + pausedToResumed[0] +"\n"+
                 " - Last app: " + pausedToResumed[1] +"\n" +
                 " - Number of apps: "+appsLastMinute+"\n" +
@@ -229,7 +225,7 @@ class MlDataCollector {
     void train(float brighness, int orientation, float lightSensor, double[] memmory, long[] networkStats, long bluetoothStats,
                long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
         Instances data;
-        if (new File(MlDataCollector.ARFFPATH).exists()) {
+        if (new File(MlDataHandler.ARFFPATH).exists()) {
             data = readArff(ARFFPATH);
         } else {
             data = createArffStruct();
@@ -292,7 +288,7 @@ class MlDataCollector {
         return new double[]{eval.pctCorrect(),eval.meanAbsoluteError()};
     }
 
-    public void evaluate(Instances data) {
+    /*public void evaluate(Instances data) {
 
         try {
         AttributeSelection attsel = new AttributeSelection();  // package weka.attributeSelection!
@@ -312,5 +308,5 @@ class MlDataCollector {
 
 
         //return attEval;
-    }
+    }*/
 }
