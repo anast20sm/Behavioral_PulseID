@@ -191,7 +191,7 @@ class MlDataHandler {
                 " - Light: "+lightSensor+"\n" +
                 " - Memory usage: "+memmory[0]+" kB"+"("+(int)memmory[1]+"%)\n" +
                 " - Network stats: "+networkStats[0]+" MB(Tx), "+networkStats[1]+" MB(Rx)\n" +
-                " - Bluetooth stats: "+bluetoothPrint+" (bonded | connected)\n" +
+                " - Bluetooth stats: "+bluetoothPrint+" (state | bonded | connected)\n" +
                 " - Locked time: "+lockTime+" s\n" +
                 " - Locks: "+unlocks+"\n" +
                 " - First app: " + pausedToResumed[0] +"\n"+
