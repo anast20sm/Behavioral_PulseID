@@ -239,16 +239,17 @@ public class MainActivity extends AppCompatActivity {
             editor.putBoolean("train", false);
             editor.putBoolean("test", true);
             editor.putString("head_text", getString(R.string.info_test_mode));
-            stopService(context);
             File f = new File(context.getFilesDir().getPath().concat("/testset.arff"));
             //To assure that each time evaluation starts, there is no data of the owner/impostor for the other one
             if (f.delete())
                 System.out.println("Testset deleted");
+            stopService(context);
             startService(context);
         }else{
             editor.putString("head_text", getString(R.string.info_test_not_available));
         }
         editor.commit();
+        infoView.setText(pref.getString("head_text", null));
     }
 
     @Override
@@ -289,8 +290,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static boolean areSufficientInstances(String path, int number) {
-        if (new File(path).exists()) {
-            try {
+        try {
+            if (new File(path).exists()) {
                 BufferedReader reader = new BufferedReader(new FileReader(path));
                 int lines = 0;
                 while (reader.readLine() != null)
@@ -298,9 +299,9 @@ public class MainActivity extends AppCompatActivity {
                 reader.close();
                 if (lines >= number)
                     return true;
-            } catch (IOException e){
-                e.printStackTrace();
             }
+        } catch (IOException e){
+            e.printStackTrace();
         }
         return false;
     }
