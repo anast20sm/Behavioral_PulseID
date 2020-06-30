@@ -33,13 +33,14 @@ public class AlarmBR extends BroadcastReceiver {
     private int appsLastInterval = 1;
     private SharedPreferences pref;
 
+    //This method carries out collection of all parameters
     private void retrieveData(Context context) {
         int brighness = getBrightness(context);
         int orientation = getScreenOrientation(context);
-        float lightSensor = BackgroundService.light; //They are light,pressure, temperature and humidity respectively
+        float lightSensor = BackgroundService.light;
         double[] memmory = getMemoryUsage(context); //They are availableMegs and percentAvailable respectively
         long[] networkStats = getNetworkStats(context); //They are txMB and rxMB respectively
-        long bluetoothStats = getBluetoothStats(); //The sum of both tx and rx
+        long bluetoothStats = getBluetoothStats();
         long unlocks = BootOrScreenBR.counter;
         long lockTime = BootOrScreenBR.screenOffTime;
         BootOrScreenBR.counter = 0;
@@ -49,37 +50,31 @@ public class AlarmBR extends BroadcastReceiver {
 
 
         try {
-            //Creamos el objeto mlDataHandler (que usa weka) y le enviamos los datos que queremos registrar o probar contra el perfil
+            //Object mlDataHandler is created (which uses Weka library) and collected datas are sent to perform configured action
             MlDataHandler mlDataHandler = new MlDataHandler(context);
-            if (!pref.getBoolean("train",false) && pref.getBoolean("test",false)){
-                //double[] corr = mlDataHandler.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+            if (!pref.getBoolean("train",false) && pref.getBoolean("test",false)){//---Evaluation mode
                 double[] corr = mlDataHandler.test(brighness,orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 updateConfidence(context, corr[0], corr[1]);
-                //Toast.makeText(context, "Test", Toast.LENGTH_SHORT).show();
-            }else if (pref.getBoolean("train",false) && !pref.getBoolean("test",false)){
-                //mlDataHandler.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+            }else if (pref.getBoolean("train",false) && !pref.getBoolean("test",false)){//---Training mode
                 mlDataHandler.train(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 BackgroundService.builder.setContentText("Training model...");
                 BackgroundService.builder.setContentTitle("Behavioral PulseID (Training)");
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
                 notificationManager.notify(1001, BackgroundService.builder.build());
-                //Toast.makeText(context, "Train", Toast.LENGTH_SHORT).show();
-            }else if (pref.getBoolean("train",false) && pref.getBoolean("test",false)){
-                //double[] corr = mlDataHandler.test(brighness,orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
+            }else if (pref.getBoolean("train",false) && pref.getBoolean("test",false)){//---Dynamic mode
                 double[] corr = mlDataHandler.test(brighness,orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 updateConfidence(context, corr[0], corr[1]);
                 if (corr[0]>85 && corr[1]<0.48) {
-                    //mlDataHandler.train(brighness, orientation, sensors, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);
                     mlDataHandler.train(brighness, orientation, lightSensor, memmory, networkStats, bluetoothStats, lockTime, unlocks, pausedToResumed, appsLastInterval, mostUsedLastDay);//EXTRA
                 }
             }
             System.out.println("*----------------------*" + new SimpleDateFormat("MMM dd,yyyy HH:mm").format(new Date(System.currentTimeMillis())));
-            //System.out.println(mlDataHandler.readArff(MlDataHandler.ARFFPATH).toString());//A partir de 425 instances ya no lo imprime bien, mejor mirar el archivo directamente
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    //This method carries out the update of the notification with percentage of correct predictions
     private void updateConfidence(Context context, double conf, double error) {
         if (MainActivity.areSufficientInstances(MlDataHandler.TESTPATH,40)) {
             if (conf < 50) {
@@ -174,6 +169,8 @@ public class AlarmBR extends BroadcastReceiver {
         return new long[]{rxValues, txValues};
     }
 
+    //Bluetooth statistics are generated. This method checks Bluetooth state and number of paired
+    // and connected devices. They are concatenated in an unique int
     private static int getBluetoothStats() {
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         int enabled = 0;
@@ -196,20 +193,20 @@ public class AlarmBR extends BroadcastReceiver {
             UsageStatsManager mUsageStatsManager = (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
             List<UsageStats> stats = mUsageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, begin, end); //The documentation
             ArrayList<Long> al = new ArrayList<>();
-            //Añadimos todos los tiempos en una lista
+            //All times are added to a list
             for (UsageStats model : stats) {
                 al.add(model.getTotalTimeInForeground());
             }
-            //Obtenemos el mayor
+            //Higher value is saved
             mostTotalTime = Collections.max(al);
             UsageStats mostToRemove = null;
-            //Obtenemos el nombre de éste
+            //The name of that higher value is saved
             for (UsageStats model : stats){
                 if (model.getTotalTimeInForeground()==mostTotalTime)
                     mostToRemove=model;
             }
             mostUsed=mostToRemove.getPackageName();
-            //Lo borramos de la lista y volvemos a hacer lo mismo
+            //Then this most used app is removed and the search is done again
             al.remove(stats.indexOf(mostToRemove));
             mostTotalTime = Collections.max(al);
             for (UsageStats model : stats){

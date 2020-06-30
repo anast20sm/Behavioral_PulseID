@@ -53,6 +53,7 @@ class MlDataHandler {
         }
     }
 
+    //This method construct the list of packages on the device
     private Set<String> constructPackages() {
         Set<String> pcks = new HashSet<>();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -65,6 +66,7 @@ class MlDataHandler {
         return pcks;
     }
 
+    //This method creates the instance structure, defining its attributes
     private Instances createArffStruct() {
         ArrayList<Attribute> atts;
         // 1. set up attributes
@@ -104,14 +106,12 @@ class MlDataHandler {
         return data;
     }
 
+    //This method is used to collect all parameters on this class
     private double[] collectData(float brighness, int orientation, float lightSensor, double[] memmory, long[] networkStats, long bluetoothStats,
                                 long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute,
                                 String[] mostUsedLastDay) {
 
-        // 3. fill with data
-        // first instance
         double[] vals = new double[18];
-        // - numeric
         vals[0] = brighness;
         vals[1] = orientation;
         vals[2] = lightSensor;
@@ -121,7 +121,6 @@ class MlDataHandler {
         vals[6] = bluetoothStats;
         vals[7] = lockTime;
         vals[8] = unlocks;
-        // - nominal
         Calendar rightNow = Calendar.getInstance();
         int currentHour = rightNow.get(Calendar.HOUR_OF_DAY);
 
@@ -140,11 +139,11 @@ class MlDataHandler {
             vals[9] = attNomHour.indexOf("temporal zone 5");
         else if (currentHour >= 20 && currentHour < 24)
             vals[9] = attNomHour.indexOf("temporal zone 6");
-        // - date (only the day of month)
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vals[10] = rightNow.get(Calendar.DAY_OF_MONTH);
         }
-        // - day of week
+
         List attNomDay = new ArrayList(7);
         attNomDay.add("Monday");
         attNomDay.add("Tuesday");
@@ -181,7 +180,6 @@ class MlDataHandler {
 
         vals[17] = 0;// this is nominal value 1 (class value)
 
-        //Print all
         String bluetoothPrint = String.valueOf(bluetoothStats);
         if (bluetoothStats>100)
              bluetoothPrint = String.valueOf(bluetoothStats-100);
@@ -222,6 +220,8 @@ class MlDataHandler {
         return instances;
     }
 
+    //This method carries out training actions. If training mode is enabled, collects data and
+    // appends new instance to the training dataset
     void train(float brighness, int orientation, float lightSensor, double[] memmory, long[] networkStats, long bluetoothStats,
                long lockTime, long unlocks, String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
         Instances data;
@@ -237,6 +237,8 @@ class MlDataHandler {
         //MainActivity.debugView.setText(pref.getString("debug_text",null));
     }
 
+    //This method carries out evaluation actions. If evaluation mode is enabled, collects data and
+    // appends new instance to the evaluation dataset. Then it it is evaluated against the trained model.
     double[] test(float brighness, int orientation, float lightSensor, double[] memmory, long[] networkStats,
                   long bluetoothStats, long lockTime, long unlocks,
                   String[] pausedToResumed, int appsLastMinute, String[] mostUsedLastDay) throws Exception {
@@ -283,30 +285,6 @@ class MlDataHandler {
         );
         editor.putString("debug_text",new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date(System.currentTimeMillis()))+" Evaluation successful."+"\n"+pref.getString("debug_text",null)).commit();
         //MainActivity.debugView.setText(pref.getString("debug_text",null));
-
-        //evaluate(trainingDataSet);
         return new double[]{eval.pctCorrect(),eval.meanAbsoluteError()};
     }
-
-    /*public void evaluate(Instances data) {
-
-        try {
-        AttributeSelection attsel = new AttributeSelection();  // package weka.attributeSelection!
-        CorrelationAttributeEval eval = new CorrelationAttributeEval();
-        Ranker ranker = new Ranker();
-        attsel.setEvaluator(eval);
-        attsel.setSearch(ranker);
-        attsel.SelectAttributes(data);
-
-        // obtain the attribute indices that were selected
-        int[] indices = attsel.selectedAttributes();
-        System.out.println(Utils.arrayToString(indices));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
-
-        //return attEval;
-    }*/
 }

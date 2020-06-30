@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         final Context context = this.getApplicationContext();
 
+        //Configure shared preferences
         pref = getSharedPreferences("pulseidpreferences", MODE_PRIVATE); // 0 - for private mode
         editor = pref.edit();
 
@@ -65,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
             editor.putString("head_text",getString(R.string.app_head_information));
         editor.commit();
 
+        //Set configured parameters on user interface
         infoView = findViewById(R.id.infoView);
         paramsView = findViewById(R.id.collectedValuesView);
         debugView = findViewById(R.id.debugView);
@@ -76,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
         btnDown = findViewById(R.id.downloadButton);
 
 
-        //If params or debug information on background service is different than what is on the ui, update
+        //Update ui texts
         if (pref.getString("params_text",null)!=paramsView.getText()){
             paramsView.setText(pref.getString("params_text", null));
         }
@@ -86,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
             debugView.setText(pref.getString("debug_text",null));
         }
 
-        //Check which mode is actually running (or "Model creation" by default)
+        //Check which mode is actually running (or set "Model creation" by default)
         if (pref.getBoolean("test", false) && !pref.getBoolean("train", false)){
             radioModeGroup.check(R.id.radioButton2);
             editor.putString("head_text", getString(R.string.info_train_mode));
@@ -114,25 +116,25 @@ public class MainActivity extends AppCompatActivity {
                 btnStop.setVisibility(View.INVISIBLE);
             }
         }
-
+        //Listener of usage button
         btnUsage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 startActivityForResult(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS),1);
             }
         });
-
+        //Listener of go button. When pressed, mode settings are configured and background service is initiated
         btnGo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 int selectedId = radioModeGroup.getCheckedRadioButtonId();
-                if (findViewById(selectedId).equals(findViewById(R.id.radioButton))) {
+                if (findViewById(selectedId).equals(findViewById(R.id.radioButton))) {//---Training mode
                     editor.putBoolean("train",true);
                     editor.putBoolean("test",false);
                     editor.putString("head_text", getString(R.string.info_train_mode));
                     stopService(context);
                     startService(context);
-                }else if (findViewById(selectedId).equals(findViewById(R.id.radioButton2))){
+                }else if (findViewById(selectedId).equals(findViewById(R.id.radioButton2))){//---Evaluation mode
                     AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                     builder.setCancelable(true);
                     builder.setTitle("Select who you are");
@@ -165,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
 
                     AlertDialog dialog = builder.create();
                     dialog.show();
-                } else if (findViewById(selectedId).equals(findViewById(R.id.radioButton3))){
+                } else if (findViewById(selectedId).equals(findViewById(R.id.radioButton3))){ //---Dynamic mode
                     if (areSufficientInstances(context.getFilesDir().getPath().concat("/dataset.arff"), 80)) { //Poner un nuevo valor coherente
                         editor.putBoolean("train",true);
                         editor.putBoolean("test",true);
@@ -182,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-
+        //Listener of stop button. When pressed, background service is stopped
         btnStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -193,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
                 stopService(context);
             }
         });
-
+        //Listener of download button. When pressed, dataset files are copied to Downloads folder
         btnDown.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -234,6 +236,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    //Starts the service configuring selected mode
     private void startEvaluation(Context context) {
         if (areSufficientInstances(context.getFilesDir().getPath().concat("/dataset.arff"), 150)) { //Poner un nuevo valor coherente
             editor.putBoolean("train", false);
@@ -262,14 +265,14 @@ public class MainActivity extends AppCompatActivity {
         editor.putString("head_text", getString(R.string.app_head_information)).commit();
         infoView.setText(pref.getString("head_text",null));
     }
-
+    //Starts background service
     private void startService(Context context) {
         Intent brIntent = new Intent();
         brIntent.setAction("startService");
         brIntent.setClass(context, BootOrScreenBR.class);
         context.sendBroadcast(brIntent);
     }
-
+    //Stops background service
     private void stopService(Context context) {
         Intent brIntent = new Intent();
         brIntent.setAction("stopService");
@@ -277,6 +280,7 @@ public class MainActivity extends AppCompatActivity {
         context.sendBroadcast(brIntent);
     }
 
+    //Method used to copy configuration files
     private void copyFile(File src, File dst) throws IOException {
         if (src.exists()) {
             FileInputStream inStream = new FileInputStream(src);
@@ -288,7 +292,7 @@ public class MainActivity extends AppCompatActivity {
             outStream.close();
         }
     }
-
+    //Method used to check number of instances before staring evaluation or dynamic mode
     public static boolean areSufficientInstances(String path, int number) {
         try {
             if (new File(path).exists()) {

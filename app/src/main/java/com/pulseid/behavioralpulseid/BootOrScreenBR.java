@@ -26,6 +26,9 @@ public class BootOrScreenBR extends BroadcastReceiver {
         editor = pref.edit();
 
         Intent backgroundService = new Intent(context, BackgroundService.class);
+
+        //Following code will execute different actions depending on which event triggered this class.
+        //As known, BroadcastReceivers react to configured events like these
         if (intent.getAction().equalsIgnoreCase(Intent.ACTION_BOOT_COMPLETED)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 //From Android 8, Android does not allow to have a persistent background services,
@@ -37,14 +40,17 @@ public class BootOrScreenBR extends BroadcastReceiver {
                 startAlarm(context);
             }
         } else if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
+            //When screen is locked, alarm is stopped and timestamp is saved
             stopAlarm();
             startTimer = System.currentTimeMillis();
         } else if (intent.getAction().equals(Intent.ACTION_SCREEN_ON)) {
+            //When screen is unlocked, alarm restars, locked time is saved and number of locks is increased
             startAlarm(context);
             long endTimer = System.currentTimeMillis();
             screenOffTime += (endTimer - startTimer);
             counter++;
         } else if (intent.getAction().equals("startService")) {
+            //When this custom event is sent, the background service is started
             editor.putBoolean("stop_service", false).commit();
             startAlarm(context);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -53,6 +59,7 @@ public class BootOrScreenBR extends BroadcastReceiver {
                 context.startService(backgroundService);
             }
         } else if (intent.getAction().equals("stopService")) {
+            //When this custom event is sent, the background service is stoped
             MainActivity.debugView.setText(pref.getString("debug_text",null));
             cancelAlarm();
             context.stopService(backgroundService);

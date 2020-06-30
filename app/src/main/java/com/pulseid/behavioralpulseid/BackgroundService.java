@@ -27,14 +27,15 @@ public class BackgroundService extends Service implements SensorEventListener {
 
     public static float light;
     private BootOrScreenBR mBootReceiver = null;
+    //Public variables stored on service to ensure persistence
     public static NotificationCompat.Builder builder = null;
-    //Estas variables se utilizan en BootOrScreenBR (están aquí para asegurar persistencia)
     public static boolean stoppingAlarm = false;
     public static String lastAppInForeground = "";
     public static int connectedDevices = 0;
 
     private SharedPreferences pref;
 
+    //BroadcastReceiver that monitors Bluetooth information on real-time
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
 
         @Override
@@ -60,8 +61,8 @@ public class BackgroundService extends Service implements SensorEventListener {
         pref = getApplicationContext().getSharedPreferences("pulseidpreferences", MODE_PRIVATE); // 0 - for private mode
 
         registerSensorsListener(this);
+        //Creation of notification channel and persistent notification that must be shown while service is running
         createNotificationChannel(); //Necessary for Android>8
-
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
                 new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
 
@@ -78,6 +79,8 @@ public class BackgroundService extends Service implements SensorEventListener {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        //Configuration of filters. They are BroadcastReceivers. One for persistence of the
+        // application and other for Bluetooth monitoring
         Toast.makeText(this, "SERVICE STARTED", Toast.LENGTH_SHORT).show();
         mBootReceiver = new BootOrScreenBR();
         IntentFilter filter = new IntentFilter();
@@ -97,6 +100,7 @@ public class BackgroundService extends Service implements SensorEventListener {
 
     @Override
     public void onDestroy() {
+        //When service is killed, unregisters both filters and starts the service again
         super.onDestroy();
         if (mBootReceiver != null) {
             unregisterReceiver(mBootReceiver);
